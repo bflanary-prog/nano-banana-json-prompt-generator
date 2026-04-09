@@ -62,7 +62,7 @@ app.post("/generate", async (req, res) => {
 
   const options = {
     hostname: "generativelanguage.googleapis.com",
-    path: `/v1beta/models/imagen-4.0-fast-generate-001:predict?key=${apiKey}`,
+    path: `/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`,
     method: "POST",
     headers: {
       "Content-Type": "application/json",

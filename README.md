@@ -2,20 +2,27 @@
 
 Convert plain English descriptions into structured JSON prompts for precise AI image generation with Google's Nano Banana 2 (Gemini 3.1 Flash Image / Imagen 4).
 
-## Why JSON Prompting?
+## How it works
 
-Plain text prompts cause AI image models to treat your description as a whole — change one element and others shift unpredictably. JSON prompting isolates each visual property into its own field, giving you surgical control over color, lighting, composition, camera, and style independently.
+**Generating:** Your plain English description is sent directly to Imagen 4 (full quality model) — exactly as you typed it, nothing stripped. In parallel, it's also parsed into a structured JSON sidecar saved alongside the image.
+
+**Editing:** Open the `.json` sidecar, tweak a single field, and re-run. Only what you changed will differ — the JSON gives you surgical control over color, lighting, composition, camera, and style independently without rewriting the whole prompt.
+
+This avoids the core problem with plain text editing: change one thing and the AI re-interprets the whole image.
 
 ## Project Structure
 
 ```
 json-prompting/
-├── server.js        # Express server — serves the app + calls Gemini API
-├── prompt.js        # CLI tool — convert plain English to JSON in the terminal
+├── generate.js      # Standalone generator — text → JSON → Imagen → output/ (no server)
+├── server.js        # Express server — serves the web UI + calls Gemini API
+├── prompt.js        # CLI tool — convert plain English to JSON only (no API call)
 ├── index.html       # Browser UI — visual prompt builder + image preview
 ├── research.md      # Research notes on JSON prompting best practices
 ├── output/          # Generated images saved here (gitignored)
 ├── .env             # API keys — never commit (gitignored)
+├── .vscode/
+│   └── tasks.json   # VS Code tasks — auto-starts server, adds Generate Image command
 ├── .gitignore
 └── package.json
 ```
@@ -35,25 +42,41 @@ json-prompting/
 
 ## Usage
 
-### Option A — VS Code (recommended, fully contained)
+### Option A — VS Code task (recommended, fully contained)
+
+No browser. No server. One command from inside VS Code.
+
+**Generate:** `Cmd+Ctrl+G` → type your description → press Enter.
+
+The image opens automatically in VS Code and is saved to `output/`. A JSON sidecar (`image-TIMESTAMP.json`) is saved alongside it.
+
+**Edit and regenerate:**
+1. Open the `.json` sidecar in `output/`
+2. Tweak any field (e.g. `"weather": "clear_skies"` → `"rainy"`, or `"time": "midnight"`)
+3. `Cmd+Shift+P` → **Tasks: Run Task** → **Regenerate from JSON** → paste the path
+4. New image opens — only what you changed differs
+
+Or from the terminal:
+```
+node generate.js "a 1950s housewife at a picnic, red checkered dress, holding a Coca-Cola can"
+node generate.js --json output/image-1234567890.json
+```
+
+### Option B — VS Code Simple Browser (web UI inside VS Code)
 
 1. Open this folder in VS Code — the server starts automatically
 2. Press `Cmd+Ctrl+S` to open the app inside VS Code's Simple Browser panel
-3. Type a plain English description
-4. Click **Generate JSON** (or press Enter)
-5. Click **Generate Image with Nano Banana 2**
-6. Image appears inline and is saved to `output/`
+3. Type a plain English description → Generate JSON → Generate Image
+4. Image appears inline and is saved to `output/`
 
-The server auto-starts on folder open via `.vscode/tasks.json`. No terminal commands needed.
-
-### Option B — Terminal + Browser
+### Option C — Terminal + Browser
 
 ```
 npm start
 ```
 Then open [http://localhost:3000](http://localhost:3000) in any browser.
 
-### Option C — CLI only (no server, no API, no cost)
+### Option D — JSON only (no API, no cost)
 
 ```
 node prompt.js "a rainy Tokyo alley at night, neon reflections, 35mm film, grain"
@@ -105,6 +128,7 @@ Every project in `~/Projects/` follows this pattern:
 | `npm start` | Starts the local server |
 | `.vscode/tasks.json` | Auto-starts server when folder opens in VS Code |
 | `Cmd+Ctrl+S` | Opens app in VS Code Simple Browser (global keybinding) |
+| `Cmd+Ctrl+G` | Runs Generate Image task — prompts for description inline |
 | `.env` | Project API keys — never committed |
 | `output/` | Generated assets — never committed |
 

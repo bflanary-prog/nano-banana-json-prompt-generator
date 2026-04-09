@@ -1,5 +1,17 @@
 {
   "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "imagePrompt",
+      "type": "promptString",
+      "description": "Describe the image (e.g. 'a rainy Tokyo alley at night, neon, 35mm film')"
+    },
+    {
+      "id": "jsonFile",
+      "type": "promptString",
+      "description": "Path to JSON sidecar (e.g. output/image-1234567890.json)"
+    }
+  ],
   "tasks": [
     {
       "label": "Start Server",
@@ -22,6 +34,28 @@
       "runOptions": {
         "runOn": "folderOpen"
       }
+    },
+    {
+      "label": "Generate Image",
+      "type": "shell",
+      "command": "node generate.js \"${input:imagePrompt}\"",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Regenerate from JSON",
+      "type": "shell",
+      "command": "node generate.js --json \"${input:jsonFile}\"",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": true
+      },
+      "problemMatcher": []
     }
   ]
 }
