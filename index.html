@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JSON Prompt Generator — Nano Banana 2</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f13;
+      --surface: #1a1a24;
+      --surface2: #222230;
+      --border: #2e2e42;
+      --accent: #7c6aff;
+      --accent2: #ff6ab0;
+      --text: #e8e8f0;
+      --muted: #7070a0;
+      --green: #4ade80;
+      --radius: 12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px 80px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    header .badge {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 99px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: clamp(24px, 5vw, 40px);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #fff 30%, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 10px;
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 15px;
+      max-width: 480px;
+      line-height: 1.6;
+    }
+
+    .main {
+      width: 100%;
+      max-width: 900px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 680px) {
+      .main { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .panel-header .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: inline-block;
+      margin-right: 8px;
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 260px;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.7;
+      padding: 18px;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    textarea::placeholder { color: var(--muted); }
+
+    .output-area {
+      min-height: 260px;
+      padding: 18px;
+      font-family: "SF Mono", "Fira Code", "Fira Mono", monospace;
+      font-size: 12.5px;
+      line-height: 1.6;
+      overflow-y: auto;
+      max-height: 500px;
+      color: #c0c8e8;
+      white-space: pre;
+    }
+
+    .output-area .key   { color: #7c9fff; }
+    .output-area .str   { color: #a8e6a3; }
+    .output-area .num   { color: #ffa07a; }
+    .output-area .bool  { color: #ff79c6; }
+    .output-area .null  { color: var(--muted); }
+    .output-area .punct { color: var(--muted); }
+
+    .placeholder-msg {
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 14px;
+      text-align: center;
+      padding-top: 60px;
+      line-height: 1.8;
+    }
+
+    .actions {
+      padding: 12px 18px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 9px 18px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #5a4adf);
+      color: white;
+      flex: 1;
+    }
+
+    .btn-primary:hover { filter: brightness(1.15); transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-copy {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-copy:hover { background: var(--border); }
+
+    .btn-copy.copied {
+      background: rgba(74, 222, 128, 0.15);
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .btn-clear {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 9px 14px;
+    }
+
+    .btn-clear:hover { color: var(--text); border-color: var(--muted); }
+
+    .tag-row {
+      padding: 10px 18px 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 11px;
+      padding: 3px 9px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.12s;
+    }
+
+    .tag:hover { border-color: var(--accent); color: var(--accent); }
+
+    .examples-section {
+      width: 100%; max-width: 900px;
+      margin-top: 32px;
+    }
+
+    .examples-section h2 {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .examples-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+    }
+
+    .example-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .example-card:hover {
+      border-color: var(--accent);
+      background: var(--surface2);
+      transform: translateY(-2px);
+    }
+
+    .example-card .label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+
+    .example-card p {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .tip {
+      width: 100%; max-width: 900px;
+      margin-top: 20px;
+      background: rgba(124, 106, 255, 0.08);
+      border: 1px solid rgba(124, 106, 255, 0.2);
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .tip strong { color: var(--accent); }
+
+    .generate-btn {
+      width: 100%;
+      max-width: 900px;
+      margin-top: 20px;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--accent2), #c0396a);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .generate-btn:hover { filter: brightness(1.15); transform: translateY(-1px); }
+    .generate-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .image-result {
+      width: 100%; max-width: 900px;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .image-result img {
+      width: 100%;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+
+    .image-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .image-meta a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .saved-images {
+      width: 100%; max-width: 900px;
+      margin-top: 32px;
+    }
+
+    .saved-images h2 {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .saved-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 10px;
+    }
+
+    .saved-grid img {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .saved-grid img:hover { border-color: var(--accent); transform: scale(1.02); }
+
+    .status-msg {
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+      padding: 10px 0;
+    }
+
+    .status-msg.error { color: #ff6b6b; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="badge">Nano Banana 2</div>
+    <h1>JSON Prompt Generator</h1>
+    <p>Turn plain English into structured JSON prompts for precise, hallucination-free AI image generation.</p>
+  </header>
+
+  <div class="main">
+
+    <!-- Input panel -->
+    <div class="panel">
+      <div class="panel-header">
+        <span><span class="dot"></span>Plain English Prompt</span>
+      </div>
+      <div class="tag-row" id="tagRow"></div>
+      <textarea id="inputText" placeholder="Describe your image in plain English...
+
+e.g. A blonde 1950s housewife at a sunny picnic holding a Coca-Cola can, shallow depth of field, warm golden tones, 50mm lens"></textarea>
+      <div class="actions">
+        <button class="btn-primary" onclick="convert()">Generate JSON →</button>
+        <button class="btn-clear" onclick="clearAll()">Clear</button>
+      </div>
+    </div>
+
+    <!-- Output panel -->
+    <div class="panel">
+      <div class="panel-header">
+        <span><span class="dot" style="background:var(--accent2);box-shadow:0 0 8px var(--accent2)"></span>JSON Prompt</span>
+        <span id="fieldCount" style="font-size:11px"></span>
+      </div>
+      <div class="output-area" id="outputArea">
+        <div class="placeholder-msg">
+          ✦ Type a description and hit<br>Generate JSON<br><br>
+          or click an example below ↓
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn-copy" id="copyBtn" onclick="copyJSON()" disabled>Copy JSON</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Quick-insert tags -->
+  <script>
+    const QUICK_TAGS = [
+      "portrait", "landscape", "cinematic", "golden hour", "studio lighting",
+      "shallow depth of field", "4K", "photorealistic", "black and white",
+      "drone shot", "anime style", "oil painting", "night scene", "rainy"
+    ];
+
+    const tagRow = document.getElementById("tagRow");
+    QUICK_TAGS.forEach(tag => {
+      const el = document.createElement("span");
+      el.className = "tag";
+      el.textContent = tag;
+      el.onclick = () => {
+        const ta = document.getElementById("inputText");
+        const val = ta.value.trim();
+        ta.value = val ? val + ", " + tag : tag;
+        ta.focus();
+      };
+      tagRow.appendChild(el);
+    });
+  </script>
+
+  <!-- Examples -->
+  <div class="examples-section">
+    <h2>Quick Examples</h2>
+    <div class="examples-grid">
+      <div class="example-card" onclick="loadExample(0)">
+        <div class="label">Retro Portrait</div>
+        <p>A blonde 1950s housewife at a sunny picnic holding a Coca-Cola, warm golden tones, 50mm</p>
+      </div>
+      <div class="example-card" onclick="loadExample(1)">
+        <div class="label">Product Shot</div>
+        <p>A luxury watch on black marble, studio lighting, macro lens, ultra sharp, 4K</p>
+      </div>
+      <div class="example-card" onclick="loadExample(2)">
+        <div class="label">Cinematic Scene</div>
+        <p>A lone astronaut walking on a red desert planet at sunset, cinematic widescreen, dramatic shadows</p>
+      </div>
+      <div class="example-card" onclick="loadExample(3)">
+        <div class="label">Street Photography</div>
+        <p>A rainy Tokyo alley at night, neon reflections, candid shot, 35mm film, grain</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="tip">
+    <strong>How to use:</strong> Generate JSON above, then click <em>Generate Image</em> to create it via Gemini directly.
+    Images are saved to <code>output/</code> in your project for use in development.
+  </div>
+
+  <button class="generate-btn" id="generateBtn" onclick="generateImage()" disabled>
+    ✦ Generate Image with Nano Banana 2
+  </button>
+
+  <div class="status-msg" id="statusMsg"></div>
+
+  <div class="image-result" id="imageResult">
+    <img id="generatedImage" src="" alt="Generated image" />
+    <div class="image-meta">
+      <span id="imageName"></span>
+      <a id="imageDownload" href="#" download>↓ Download</a>
+    </div>
+  </div>
+
+  <div class="saved-images" id="savedSection" style="display:none">
+    <h2>Saved Images</h2>
+    <div class="saved-grid" id="savedGrid"></div>
+  </div>
+
+  <script>
+    const EXAMPLES = [
+      "A blonde 1950s housewife at a sunny picnic holding a Coca-Cola can, warm golden tones, 50mm lens, shallow depth of field",
+      "A luxury watch on black marble, studio lighting, macro lens, ultra sharp, 4K, no reflections",
+      "A lone astronaut walking on a red desert planet at sunset, cinematic widescreen, dramatic shadows, wide angle, no people in background",
+      "A rainy Tokyo alley at night, neon reflections, candid street photography shot, 35mm film, grain, shallow depth of field"
+    ];
+
+    function loadExample(i) {
+      document.getElementById("inputText").value = EXAMPLES[i];
+      convert();
+    }
+
+    // ─── Conversion engine ───────────────────────────────────────────────────
+
+    function parsePrompt(text) {
+      const t = text.toLowerCase();
+      const out = {};
+
+      // ── Meta ────────────────────────────────────────────────────────────────
+      const meta = {};
+
+      // Aspect ratio
+      if (/\b(widescreen|cinematic|16.?9|landscape)\b/.test(t))          meta.aspect_ratio = "16:9";
+      else if (/\b(portrait|9.?16|vertical|instagram story)\b/.test(t)) meta.aspect_ratio = "9:16";
+      else if (/\b(square|1.?1)\b/.test(t))                             meta.aspect_ratio = "1:1";
+      else if (/\b(4.?3)\b/.test(t))                                    meta.aspect_ratio = "4:3";
+      else                                                               meta.aspect_ratio = "1:1";
+
+      // Quality
+      if (/\banime\b/.test(t))             meta.quality = "anime_v6";
+      else if (/\boil paint/.test(t))      meta.quality = "oil_painting";
+      else if (/\bwatercolor\b/.test(t))   meta.quality = "watercolor";
+      else if (/\bsketch\b/.test(t))       meta.quality = "pencil_sketch";
+      else if (/\b3d render\b/.test(t))    meta.quality = "3d_render_octane";
+      else if (/\bpixel art\b/.test(t))    meta.quality = "pixel_art";
+      else                                 meta.quality = "ultra_photorealistic";
+
+      // Resolution
+      if (/\b4k\b/.test(t))       meta.resolution = "3840x2160";
+      else if (/\b2k\b/.test(t))  meta.resolution = "2560x1440";
+      else if (/\b1080p?\b/.test(t)) meta.resolution = "1920x1080";
+
+      meta.magic_prompt_enhancer = true;
+      out.meta = meta;
+
+      // ── Subject ─────────────────────────────────────────────────────────────
+      const subject = {};
+      subject.id = "main";
+
+      // Type detection
+      if (/\b(man|woman|boy|girl|person|people|child|baby|human|housewife|astronaut|model|photographer|warrior|soldier)\b/.test(t))
+        subject.type = "person";
+      else if (/\b(cat|dog|horse|lion|wolf|bird|animal|bear)\b/.test(t))
+        subject.type = "animal";
+      else if (/\b(robot|android|cyborg)\b/.test(t))
+        subject.type = "robot";
+      else
+        subject.type = "object";
+
+      // Build description from the original text (first 120 chars, cleaned up)
+      const descText = text.split(/[,\.]/)[0].trim();
+      subject.description = descText.length > 120 ? descText.slice(0, 120) + "…" : descText;
+
+      // Expression hints
+      if (/\b(smiling|happy|laughing|joy)\b/.test(t))      subject.expression = "smiling, warm";
+      else if (/\b(serious|stern|intense)\b/.test(t))      subject.expression = "serious, focused";
+      else if (/\b(sad|crying|melancholy)\b/.test(t))      subject.expression = "melancholic, distant";
+      else if (/\b(surprised|shocked)\b/.test(t))          subject.expression = "surprised";
+      else if (subject.type === "person")                   subject.expression = "natural, relaxed";
+
+      // Hair
+      if (subject.type === "person") {
+        const hair = {};
+        if (/\b(straight hair|straight)\b/.test(t))         hair.style = "straight";
+        else if (/\b(curly|curls)\b/.test(t))               hair.style = "curly";
+        else if (/\b(wavy)\b/.test(t))                      hair.style = "wavy";
+        else if (/\b(short hair|short)\b/.test(t))          hair.style = "short";
+        else if (/\b(long hair|long)\b/.test(t))            hair.style = "long";
+        else if (/\b(bun|updo)\b/.test(t))                  hair.style = "updo bun";
+        else if (/\b(ponytail)\b/.test(t))                  hair.style = "ponytail";
+        if (/\b(blonde|blond)\b/.test(t))                   hair.color = "blonde";
+        else if (/\b(brunette|brown hair|brown)\b/.test(t)) hair.color = "brown";
+        else if (/\b(black hair|black)\b/.test(t))          hair.color = "black";
+        else if (/\b(red hair|redhead|auburn)\b/.test(t))   hair.color = "auburn red";
+        else if (/\b(grey hair|gray hair|silver)\b/.test(t)) hair.color = "silver grey";
+        else if (/\b(white hair)\b/.test(t))                hair.color = "white";
+        if (Object.keys(hair).length) subject.hair = hair;
+      }
+
+      out.subject = [subject];
+
+      // ── Scene ───────────────────────────────────────────────────────────────
+      const scene = {};
+
+      // Location
+      const locationMap = [
+        [/\b(tokyo|japan)\b/, "Tokyo street"],
+        [/\b(alley|alleyway)\b/, "narrow urban alley"],
+        [/\b(picnic|park|meadow|field)\b/, "outdoor park setting"],
+        [/\b(desert|sand|dune)\b/, "vast desert landscape"],
+        [/\b(studio)\b/, "professional photography studio"],
+        [/\b(beach|ocean|sea|coast)\b/, "coastal beach"],
+        [/\b(forest|woods|jungle)\b/, "dense forest"],
+        [/\b(city|urban|street)\b/, "urban cityscape"],
+        [/\b(mountain|cliff|highland)\b/, "mountain terrain"],
+        [/\b(space|planet|cosmos|galaxy)\b/, "outer space"],
+        [/\b(indoor|inside|room|interior|apartment|home)\b/, "indoor interior"],
+        [/\b(office|workplace)\b/, "modern office"],
+        [/\b(marble|table)\b/, "styled surface"],
+      ];
+      for (const [re, val] of locationMap) {
+        if (re.test(t)) { scene.location = val; break; }
+      }
+      if (!scene.location) scene.location = "unspecified environment";
+
+      // Time of day
+      if (/\b(golden hour|magic hour)\b/.test(t))   scene.time = "golden_hour";
+      else if (/\b(blue hour|dusk)\b/.test(t))       scene.time = "blue_hour";
+      else if (/\b(sunrise|dawn)\b/.test(t))         scene.time = "sunrise";
+      else if (/\b(sunset)\b/.test(t))               scene.time = "sunset";
+      else if (/\b(noon|midday|high noon)\b/.test(t)) scene.time = "high_noon";
+      else if (/\b(night|midnight|dark)\b/.test(t))  scene.time = "midnight";
+      else if (/\b(morning)\b/.test(t))              scene.time = "sunrise";
+      else if (/\b(afternoon)\b/.test(t))            scene.time = "high_noon";
+      else                                           scene.time = "golden_hour";
+
+      // Weather
+      if (/\b(rain|rainy|wet|stormy|storm)\b/.test(t))    scene.weather = "rainy";
+      else if (/\b(snow|snowy|winter|blizzard)\b/.test(t)) scene.weather = "snowing";
+      else if (/\b(fog|foggy|mist|misty)\b/.test(t))      scene.weather = "foggy";
+      else if (/\b(sunny|clear|bright)\b/.test(t))         scene.weather = "clear_skies";
+      else if (/\b(overcast|cloudy|grey)\b/.test(t))       scene.weather = "overcast";
+      else                                                  scene.weather = "clear_skies";
+
+      // Lighting
+      const lighting = {};
+      if (/\b(neon|neon sign|neon light)\b/.test(t))          lighting.type = "neon ambient";
+      else if (/\b(dramatic|harsh|high contrast)\b/.test(t))  lighting.type = "dramatic chiaroscuro";
+      else if (/\b(studio|ring light)\b/.test(t))             lighting.type = "studio softbox";
+      else if (/\b(natural|sunlight|daylight)\b/.test(t))     lighting.type = "natural sunlight";
+      else if (/\b(golden|warm light|warm)\b/.test(t))        lighting.type = "warm golden light";
+      else if (/\b(soft|diffused|gentle)\b/.test(t))          lighting.type = "soft diffused";
+      else if (/\b(backlit|backlight|silhouette)\b/.test(t))  lighting.type = "backlit";
+      else if (/\b(candlelight|candle|fire|flame)\b/.test(t)) lighting.type = "warm candlelight";
+      else lighting.type = "natural ambient";
+
+      if (/\b(front.?lit|frontal)\b/.test(t))     lighting.direction = "front";
+      else if (/\b(back.?lit|from behind)\b/.test(t)) lighting.direction = "rear";
+      else if (/\b(side.?lit|rembrandt)\b/.test(t))   lighting.direction = "45° side";
+      else if (/\b(top.?lit|overhead)\b/.test(t))     lighting.direction = "overhead";
+      else                                            lighting.direction = "three-quarter";
+
+      scene.lighting = lighting;
+      out.scene = scene;
+
+      // ── Technical ───────────────────────────────────────────────────────────
+      const tech = {};
+
+      // Camera
+      if (/\b(film|35mm|kodak|fuji|analog)\b/.test(t))        tech.camera_model = "35mm film camera";
+      else if (/\b(iphone|phone|mobile)\b/.test(t))           tech.camera_model = "iPhone 15 Pro";
+      else if (/\b(drone|aerial|bird.?s.?eye)\b/.test(t))     tech.camera_model = "DJI drone";
+      else if (/\b(gopro|action cam)\b/.test(t))              tech.camera_model = "GoPro Hero 12";
+      else if (/\b(polaroid|instant)\b/.test(t))              tech.camera_model = "Polaroid Now";
+      else if (/\b(macro|close.?up)\b/.test(t))               tech.camera_model = "Canon EOS R5";
+      else                                                     tech.camera_model = "Sony A7R IV";
+
+      // Lens
+      const lensMap = [
+        [/\b(24mm)\b/, "24mm wide prime"],
+        [/\b(35mm)\b/, "35mm prime"],
+        [/\b(50mm)\b/, "50mm standard prime"],
+        [/\b(85mm)\b/, "85mm portrait prime"],
+        [/\b(135mm)\b/, "135mm telephoto"],
+        [/\b(200mm|tele)\b/, "200mm telephoto"],
+        [/\b(macro)\b/, "100mm macro"],
+        [/\b(fisheye)\b/, "8mm fisheye"],
+        [/\b(wide angle|wide.?angle|ultra.?wide)\b/, "16mm ultra-wide"],
+        [/\b(zoom)\b/, "24-70mm zoom"],
+      ];
+      for (const [re, val] of lensMap) {
+        if (re.test(t)) { tech.lens = val; break; }
+      }
+      if (!tech.lens) tech.lens = "50mm standard prime";
+
+      // Aperture / depth of field
+      if (/\b(shallow depth|bokeh|f\/1|1\.4|1\.8|f1|blur(red)? background)\b/.test(t))
+        tech.aperture = "f/1.8 (shallow depth of field)";
+      else if (/\b(deep focus|everything in focus|sharp throughout)\b/.test(t))
+        tech.aperture = "f/11 (deep focus)";
+      else
+        tech.aperture = "f/2.8";
+
+      // Film stock
+      if (/\b(kodak|portra)\b/.test(t))      tech.film_stock = "Kodak Portra 400";
+      else if (/\b(fuji|velvia)\b/.test(t))  tech.film_stock = "Fujifilm Velvia 50";
+      else if (/\b(grain|grainy|film grain)\b/.test(t)) tech.film_stock = "CineStill 800T";
+      else if (meta.quality === "ultra_photorealistic") tech.film_stock = null;
+
+      if (!tech.film_stock) delete tech.film_stock;
+      out.technical = tech;
+
+      // ── Composition ─────────────────────────────────────────────────────────
+      const comp = {};
+
+      if (/\b(extreme close.?up|ecu|detail shot)\b/.test(t))        comp.framing = "extreme_close_up";
+      else if (/\b(close.?up|cu|headshot|face)\b/.test(t))          comp.framing = "close_up";
+      else if (/\b(medium close|waist up)\b/.test(t))               comp.framing = "medium_close_up";
+      else if (/\b(medium shot|mid shot|chest up)\b/.test(t))       comp.framing = "medium_shot";
+      else if (/\b(full body|full length|head to toe)\b/.test(t))   comp.framing = "full_body";
+      else if (/\b(wide shot|ws|establishing)\b/.test(t))           comp.framing = "wide_shot";
+      else if (/\b(extreme wide|landscape|panorama)\b/.test(t))     comp.framing = "extreme_wide_shot";
+      else                                                           comp.framing = "medium_shot";
+
+      if (/\b(low angle|worm.?s.?eye|from below)\b/.test(t))     comp.angle = "low_angle";
+      else if (/\b(high angle|birds.?eye|from above|overhead)\b/.test(t)) comp.angle = "bird_eye_view";
+      else if (/\b(dutch angle|tilted|canted)\b/.test(t))         comp.angle = "dutch_angle";
+      else if (/\b(drone|aerial)\b/.test(t))                       comp.angle = "aerial";
+      else                                                          comp.angle = "eye_level";
+
+      out.composition = comp;
+
+      // ── Style modifiers ─────────────────────────────────────────────────────
+      const style = {};
+      style.medium = meta.quality === "ultra_photorealistic" ? "photography" :
+                     meta.quality === "anime_v6" ? "anime" :
+                     meta.quality === "oil_painting" ? "oil_painting" :
+                     meta.quality === "watercolor" ? "watercolor" :
+                     meta.quality === "3d_render_octane" ? "3d_render" : "photography";
+
+      const aesthetics = [];
+      if (/\b(cinematic)\b/.test(t))      aesthetics.push("cinematic");
+      if (/\b(noir|black and white|b&w|bw|monochrome)\b/.test(t)) aesthetics.push("noir");
+      if (/\b(vintage|retro|1950'?s|1960'?s|1970'?s|1980'?s|old school)\b/.test(t)) aesthetics.push("vintage");
+      if (/\b(cyberpunk|neon|futuristic)\b/.test(t))  aesthetics.push("cyberpunk");
+      if (/\b(minimal|minimalist)\b/.test(t))         aesthetics.push("minimalist");
+      if (/\b(luxury|luxurious|high.?end)\b/.test(t)) aesthetics.push("luxury editorial");
+      if (/\b(gritty|street|urban)\b/.test(t))        aesthetics.push("gritty realism");
+      if (aesthetics.length) style.aesthetic = aesthetics;
+
+      if (/\b(warm|golden|amber|orange tones?)\b/.test(t)) {
+        style.color_palette = { tone: "warm", primary: "amber and gold", saturation: 0.8 };
+      } else if (/\b(cool|blue|teal|cyan tones?)\b/.test(t)) {
+        style.color_palette = { tone: "cool", primary: "teal and blue", saturation: 0.7 };
+      } else if (/\b(black and white|b&w|monochrome|bw)\b/.test(t)) {
+        style.color_palette = { tone: "monochrome", saturation: 0.0, contrast: 1.4 };
+      } else if (/\b(pastel|soft colors?|muted)\b/.test(t)) {
+        style.color_palette = { tone: "pastel", saturation: 0.4 };
+      }
+
+      out.style_modifiers = style;
+
+      // ── Advanced ────────────────────────────────────────────────────────────
+      const advanced = {};
+      const negative = [];
+
+      if (/\b(no people|no crowd|empty)\b/.test(t))      negative.push("people in background");
+      if (/\b(no blur|sharp)\b/.test(t))                 negative.push("motion blur");
+      if (/\b(no text|without text)\b/.test(t))          negative.push("text", "watermarks", "logos");
+      if (/\b(no reflection)\b/.test(t))                 negative.push("reflections");
+      if (/\b(no shadow)\b/.test(t))                     negative.push("harsh shadows");
+      if (/\b(no background|clean background)\b/.test(t)) negative.push("busy background", "distracting elements");
+      if (/\b(no grain|clean|noise.?free)\b/.test(t))    negative.push("grain", "noise");
+
+      // Always add sensible defaults
+      negative.push("low quality", "blurry", "pixelated", "oversaturated");
+
+      advanced.negative_prompt = negative;
+      advanced.magic_prompt_enhancer = true;
+      advanced.hdr_mode = true;
+      out.advanced = advanced;
+
+      return out;
+    }
+
+    function syntaxHighlight(json) {
+      return json
+        .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, match => {
+          let cls = "num";
+          if (/^"/.test(match)) {
+            cls = /:$/.test(match) ? "key" : "str";
+          } else if (/true|false/.test(match)) {
+            cls = "bool";
+          } else if (/null/.test(match)) {
+            cls = "null";
+          }
+          return `<span class="${cls}">${match}</span>`;
+        })
+        .replace(/([{}\[\],])/g, '<span class="punct">$1</span>');
+    }
+
+    let lastJSON = null;
+
+    function convert() {
+      const input = document.getElementById("inputText").value.trim();
+      if (!input) return;
+
+      const result = parsePrompt(input);
+      lastJSON = JSON.stringify(result, null, 2);
+
+      const fieldCount = countFields(result);
+      document.getElementById("fieldCount").textContent = fieldCount + " fields";
+
+      document.getElementById("outputArea").innerHTML = syntaxHighlight(lastJSON);
+      document.getElementById("copyBtn").disabled = false;
+      document.getElementById("generateBtn").disabled = false;
+    }
+
+    function countFields(obj, depth = 0) {
+      if (depth > 3) return 0;
+      let count = 0;
+      for (const v of Object.values(obj)) {
+        count++;
+        if (v && typeof v === "object" && !Array.isArray(v)) count += countFields(v, depth + 1);
+      }
+      return count;
+    }
+
+    function copyJSON() {
+      if (!lastJSON) return;
+      navigator.clipboard.writeText(lastJSON).then(() => {
+        const btn = document.getElementById("copyBtn");
+        btn.textContent = "✓ Copied!";
+        btn.classList.add("copied");
+        setTimeout(() => {
+          btn.textContent = "Copy JSON";
+          btn.classList.remove("copied");
+        }, 2000);
+      });
+    }
+
+    function clearAll() {
+      document.getElementById("inputText").value = "";
+      document.getElementById("outputArea").innerHTML = `<div class="placeholder-msg">✦ Type a description and hit<br>Generate JSON<br><br>or click an example below ↓</div>`;
+      document.getElementById("copyBtn").disabled = true;
+      document.getElementById("fieldCount").textContent = "";
+      lastJSON = null;
+    }
+
+    // Enter key to convert (Shift+Enter for newline)
+    document.getElementById("inputText").addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        convert();
+      }
+    });
+
+
+    async function generateImage() {
+      const btn = document.getElementById("generateBtn");
+      const status = document.getElementById("statusMsg");
+      btn.disabled = true;
+      btn.textContent = "⏳ Generating…";
+      status.textContent = "Sending to Gemini — this takes 10–20 seconds…";
+      status.className = "status-msg";
+
+      try {
+        const res = await fetch("/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ json: JSON.parse(lastJSON) }),
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        const imgEl = document.getElementById("generatedImage");
+        imgEl.src = data.url;
+        document.getElementById("imageName").textContent = data.filename;
+        document.getElementById("imageDownload").href = data.url;
+        document.getElementById("imageDownload").download = data.filename;
+        document.getElementById("imageResult").style.display = "block";
+        status.textContent = `✅ Saved to output/${data.filename}`;
+        status.className = "status-msg";
+        loadSavedImages();
+      } catch (err) {
+        status.textContent = `❌ ${err.message}`;
+        status.className = "status-msg error";
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "✦ Generate Image with Nano Banana 2";
+      }
+    }
+
+    async function loadSavedImages() {
+      try {
+        const res = await fetch("/images");
+        const images = await res.json();
+        const grid = document.getElementById("savedGrid");
+        const section = document.getElementById("savedSection");
+        if (!images.length) return;
+        section.style.display = "block";
+        grid.innerHTML = images.map(img =>
+          `<img src="${img.url}" title="${img.filename}" onclick="window.open('${img.url}')" />`
+        ).join("");
+      } catch {}
+    }
+
+    // Load saved images on startup
+    loadSavedImages();
+  </script>
+
+</body>
+</html>
