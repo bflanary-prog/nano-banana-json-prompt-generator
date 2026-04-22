@@ -1,4 +1,17 @@
-# json-prompting
+# Nano Banana — Image Generation Tool
+
+**This is the image/art generation tool for all projects.** When Brad says "Nano Banana" or asks to generate images, art, thumbnails, banners, or designs — use this project.
+
+**Quick command:**
+```bash
+cd /Users/bflanary/Projects/nano-banana-json-prompt-generator
+node generate.js "plain english description"
+```
+
+Output lands in `output/`. Run multiple in parallel with `&` + `wait`.
+Write prompts in plain English — no Midjourney syntax (`--ar`, `--v`, etc.).
+
+---
 
 Prompt engineering tool — web UI for generating and testing structured prompts.
 
