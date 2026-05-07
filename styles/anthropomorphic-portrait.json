@@ -1,0 +1,40 @@
+{
+  "meta": {
+    "aspect_ratio": "1:1",
+    "quality": "ultra_photorealistic",
+    "magic_prompt_enhancer": true,
+    "rendering_engine": "imagen_4_full",
+    "photographic_realism_priority": "MAXIMUM"
+  },
+  "subject": {
+    "type": "anthropomorphic figure (animal head + tailored human body) — match the proportions of a real adult human male portrait",
+    "head_sizing_CRITICAL": "the bull head MUST be sized to fit a human body's proportions — approximately the size of a normal adult human head, NOT a real bull's anatomically full head size. Bull heads are 4-5x larger than human heads in real life; we are NOT rendering it at that scale. The head should occupy roughly 25-30% of the total frame height, with shoulders and torso filling the remaining 60-70%. Imagine a normal human gentleman's portrait — the head takes up the top quarter of the frame, not over half. The fox-on-suit reference image is the correct head-to-body ratio. The head should look like it BELONGS on that body, anatomically scaled like a human head.",
+    "head_features": "anatomically correct bull head proportions (Hereford/Angus reference) but SIZED DOWN to human-head scale. Coarse short-hair coat in mahogany-and-chestnut with realistic individual hair definition. Wet velvet-black nose with realistic catchlights. Small bovine eyes with warm amber iris and soft inner catchlight (bovine eyes are anatomically smaller than human eyes in proportion to the skull — keep them small). Mouth closed, neutral. Short tufted forelock between horns. Horns: dark polished, moderate length, ivory at base graduating to near-black tips, scaled to the smaller head proportionally. Alert ears angled slightly outward.",
+    "body": "tailored adult human male body, three-quarter view, slight body angle to camera-left, head turned toward viewer with direct eye contact",
+    "hand": "right hand visible at chest height holding the lapel"
+  },
+  "wardrobe": {
+    "suit": "two-piece tailored business suit, single-breasted, deep classic Savile-Row navy (NOT bright/royal/electric/pastel), solid color, peak lapel, fine wool with subtle natural sheen",
+    "shirt": "crisp white dress shirt with point collar, immaculate",
+    "tie": "solid steel-blue silk tie — clear shade lighter and slightly cooler than the navy suit, slim cut, perfect Windsor knot with crisp dimple",
+    "pocket_square": "champagne-cream silk, crisp TV-fold, peeking ~1cm from breast pocket"
+  },
+  "composition_CRITICAL": "Frame divided in proportions of a NORMAL HUMAN PORTRAIT: head occupies upper 1/4 to 1/3 of vertical frame, shoulders/upper torso fill middle third, lower torso visible at bottom. The bull head is the same SIZE as a human head would be in this exact composition — neither enlarged nor squished. Reference the fox-headed gentleman portrait composition exactly: head ~25-30% of frame height, body ~60-70%. Vertical 1:1 mid-shot at apparent 85mm lens, subject from waist-up, perfectly centered horizontally.",
+  "lighting": "real studio strobe key light from upper-camera-left at 45° through medium softbox, subtle ambient fill on right, soft warm rim defining right edge, single-source physics",
+  "background": "solid charcoal-to-dark-graphite seamless studio backdrop, deepest at corners, no visible texture",
+  "style": "high-end editorial portraiture (Annie Leibovitz / Mark Seliger / Platon), photorealistic, 100MP medium-format aesthetic, Kodak Portra grain finish — NOT cartoon, NOT illustration, NOT 3D render",
+  "mood": "confident, composed, slightly knowing — Wall Street bull figure in financial-district navy",
+  "anti_patterns": [
+    "DO NOT render the bull head at real-bull-anatomy size — it must be human-head-sized for the body proportions",
+    "DO NOT make the head dominate the frame — head should be ~25-30% of frame height, NOT 50-60%",
+    "DO NOT compress the body to fit a giant head — body proportions must read as a real human gentleman's portrait",
+    "no cartoon, toon shading, anime, Pixar-style, digital illustration, 3D render aesthetic, AI-art look",
+    "no enlarged cartoonish eyes",
+    "no aggressive snarling expression",
+    "no glowing or fantasy elements",
+    "no busy or patterned background",
+    "no logos, watermarks, or text",
+    "no bright/electric/royal/pastel blue suit — must be classic navy",
+    "no navy or matching-suit-color tie — must be clearly lighter steel blue"
+  ]
+}
