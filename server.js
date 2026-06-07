@@ -4,9 +4,20 @@ const fs = require("fs");
 const path = require("path");
 const https = require("https");
 
+function geminiKey() {
+  // Env first, then macOS Keychain (service=nano-banana, account=gemini_api_key).
+  if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
+  try {
+    return require("child_process")
+      .execSync("security find-generic-password -s nano-banana -a gemini_api_key -w", { encoding: "utf8" })
+      .trim() || null;
+  } catch { return null; }
+}
+
 const app = express();
 const PORT = 3000;
 const OUTPUT_DIR = path.join(__dirname, "output");
+const GEMINI_KEY = geminiKey();
 
 if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR);
 
@@ -17,10 +28,10 @@ app.use("/output", express.static(OUTPUT_DIR));
 // Generate image from JSON prompt via Gemini API
 app.post("/generate", async (req, res) => {
   const { json } = req.body;
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = GEMINI_KEY;
 
   if (!apiKey) {
-    return res.status(500).json({ error: "GEMINI_API_KEY not set in .env" });
+    return res.status(500).json({ error: "GEMINI_API_KEY not set (.env or Keychain nano-banana/gemini_api_key)" });
   }
 
   // Convert JSON fields into a clean natural language prompt for Imagen

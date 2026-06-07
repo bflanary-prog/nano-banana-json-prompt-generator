@@ -22,9 +22,18 @@ if (!fromJsonFile && !text) {
   process.exit(1);
 }
 
-const apiKey = process.env.GEMINI_API_KEY;
+function geminiKey() {
+  // Env first, then macOS Keychain (service=nano-banana, account=gemini_api_key).
+  if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
+  try {
+    return require("child_process")
+      .execSync("security find-generic-password -s nano-banana -a gemini_api_key -w", { encoding: "utf8" })
+      .trim() || null;
+  } catch { return null; }
+}
+const apiKey = geminiKey();
 if (!apiKey) {
-  console.error("Error: GEMINI_API_KEY not set in .env");
+  console.error("Error: GEMINI_API_KEY not set (.env or Keychain nano-banana/gemini_api_key)");
   process.exit(1);
 }
 
