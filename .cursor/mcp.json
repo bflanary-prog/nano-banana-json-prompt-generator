@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "notion": {
+      "command": "sh",
+      "args": [
+        "-c",
+        "OPENAPI_MCP_HEADERS=$(printf '{\"Authorization\":\"Bearer %s\",\"Notion-Version\":\"2022-06-28\"}' \"$(security find-generic-password -s notion -a mcp_token -w)\") exec npx -y @notionhq/notion-mcp-server"
+      ]
+    }
+  }
+}

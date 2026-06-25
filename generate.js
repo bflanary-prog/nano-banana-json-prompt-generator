@@ -160,8 +160,8 @@ async function generateImage(json, rawText) {
     console.log(`JSON:   output/${basename}.json`);
     console.log(`\nTo edit and regenerate: node generate.js --json output/${basename}.json`);
 
-    // Open the image in VS Code
-    spawn("code", [imageFile], { detached: true, stdio: "ignore" }).unref();
+    // Open the image in Cursor
+    spawn("cursor", [imageFile], { detached: true, stdio: "ignore" }).unref();
   } catch (err) {
     console.error(`\nError: ${err.message}`);
     process.exit(1);
