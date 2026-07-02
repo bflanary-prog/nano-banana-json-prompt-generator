@@ -1,0 +1,70 @@
+{
+  "meta": {
+    "aspect_ratio": "1:1",
+    "quality": "3d_render_octane",
+    "resolution": "1024x1024",
+    "magic_prompt_enhancer": true
+  },
+  "subject": [
+    {
+      "id": "cash",
+      "type": "object",
+      "description": "Clean front-facing character reference sheet still of Cash, the Plainspoke mascot, centered full body, 2.5D retro rubber-hose cartoon, locked orthographic straight-on view. Cash is a chunky Arial Black dollar-sign glyph mascot with readable dollar-sign negative spaces, not a generic pillar, coin, or rounded rectangle. Preserve exact brand-rig colors: teal top highlight #48ecd6, teal base #27c8b4, teal lower shadow #149083, center cream stripe #fcefce to #eccd95 clipped to the dollar-sign vertical strokes, warm peach-orange lower-right bevel/extrusion #f88652, dark facial linework and pupils #16202e. Big eyes with tall oval pupils, expressive brows, subtle cheek blush, rubber-hose teal arms, stubby teal legs, friendly encouraging grin, no smugness. Flat cel shading, clean vector-like planes, no texture noise.",
+      "expression": "friendly, encouraging"
+    }
+  ],
+  "scene": {
+    "location": "minimal dark warm gradient studio background matching the expression sheet",
+    "weather": "clear_skies",
+    "lighting": {
+      "type": "single soft upper-left key light with subtle amber rim glow",
+      "direction": "upper-left"
+    }
+  },
+  "technical": {
+    "camera_model": "orthographic 3D render camera",
+    "lens": "orthographic lens",
+    "aperture": "deep focus"
+  },
+  "composition": {
+    "framing": "full_body",
+    "angle": "eye_level"
+  },
+  "style_modifiers": {
+    "medium": "2.5D cel-shaded character render",
+    "aesthetic": ["retro rubber-hose cartoon", "clean mascot design"],
+    "color_palette": {
+      "tone": "warm dark background with teal dollar-sign character",
+      "primary": "teal, cream, peach-orange bevel",
+      "saturation": 0.85
+    }
+  },
+  "advanced": {
+    "negative_prompt": [
+      "text",
+      "logo",
+      "watermark",
+      "extra limbs",
+      "extra fingers",
+      "extra characters",
+      "perspective distortion",
+      "camera tilt",
+      "color shifts",
+      "lighting changes",
+      "texture noise",
+      "grain",
+      "photorealism",
+      "smug expression",
+      "generic mascot body",
+      "coin character",
+      "plain rectangle body",
+      "missing dollar-sign cutouts",
+      "low quality",
+      "blurry",
+      "pixelated",
+      "oversaturated"
+    ],
+    "magic_prompt_enhancer": true,
+    "hdr_mode": false
+  }
+}

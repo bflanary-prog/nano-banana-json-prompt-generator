@@ -1,0 +1,264 @@
+{
+  "project": {
+    "name": "CASH - Plainspoke Mascot Reel",
+    "version": "1.0.0",
+    "style": "2.5D retro rubber-hose cartoon",
+    "frame_rate": 24,
+    "duration_frames": 552,
+    "duration_seconds": 23,
+    "primary_resolution": "1920x1080",
+    "alternate_resolution": "1024x1024",
+    "camera": "locked orthographic, straight-on",
+    "director_note": "Original spec says shot 1 is 3.5 seconds but also frames 1-60. At 24 fps, 3.5 seconds is 84 frames. This timeline honors timing and uses frames 1-84."
+  },
+  "character_lock": {
+    "name": "Cash",
+    "source_references": [
+      "/Users/bflanary/Projects/plainspoke/brand/rig/expressions.png",
+      "/Users/bflanary/Projects/plainspoke/brand/rig/dollar_hero.svg",
+      "/Users/bflanary/Projects/plainspoke/brand/rig/blender/mascot_build.py"
+    ],
+    "body": {
+      "silhouette": "chunky Arial Black dollar-sign glyph with readable negative spaces",
+      "teal_top_highlight": "#48ecd6",
+      "teal_base": "#27c8b4",
+      "teal_lower_shadow": "#149083",
+      "cream_center_highlight": "#fcefce",
+      "cream_center_shadow": "#eccd95",
+      "warm_peach_orange_bevel_lower_right": "#f88652",
+      "facial_linework": "#16202e"
+    },
+    "features": [
+      "actual dollar-sign body, not generic pillar or coin",
+      "two centered vertical cream bars clipped to the dollar glyph",
+      "readable dollar-sign negative spaces",
+      "dark expressive brows",
+      "soft cheek blush",
+      "big eyes with tall oval pupils",
+      "rubber-hose teal arms",
+      "stubby teal legs",
+      "friendly grin, never smug"
+    ],
+    "proportion_rules": [
+      "body silhouette stays identical in every shot",
+      "dollar-sign cutouts stay readable and do not collapse",
+      "cream center stripe stays vertical, centered, and clipped to the dollar-sign glyph",
+      "warm bevel remains on lower-right edge even during turns",
+      "pupils stay tall ovals except brief star-pupil excited effect",
+      "no extra fingers, no extra limbs, no morphing"
+    ]
+  },
+  "scene_lock": {
+    "background": "dark warm gradient #42301d to #140e07 with subtle vignette",
+    "lighting": "single soft key from upper-left with soft amber rim glow",
+    "ground": "soft oval drop shadow anchored to feet",
+    "render_style": "flat cel shading, clean vector-like planes, no texture noise, no lighting shifts"
+  },
+  "coordinate_system": {
+    "canvas_width": 1920,
+    "canvas_height": 1080,
+    "ground_y": 820,
+    "hero_center_x": 960,
+    "character_height_px": 430,
+    "character_width_px": 320,
+    "shadow_base_width_px": 270,
+    "shadow_base_height_px": 42
+  },
+  "animation_principles": {
+    "easing": "smooth spline easing, no hard pose snaps",
+    "walk_cycle": {
+      "cycle_frames": 16,
+      "beats": [
+        { "offset": 0, "name": "contact", "body_y_delta": 0, "squash_y": 0.98, "stretch_x": 1.02, "shadow_scale": 1.08 },
+        { "offset": 4, "name": "down", "body_y_delta": 10, "squash_y": 0.97, "stretch_x": 1.03, "shadow_scale": 1.12 },
+        { "offset": 8, "name": "passing", "body_y_delta": -10, "squash_y": 1.01, "stretch_x": 0.99, "shadow_scale": 0.95 },
+        { "offset": 12, "name": "up", "body_y_delta": -18, "squash_y": 1.02, "stretch_x": 0.98, "shadow_scale": 0.9 }
+      ],
+      "stride_px": 160,
+      "foot_lock_rule": "When contact foot is planted, keep that foot world position fixed until push-off. Move pelvis over planted foot. Do not translate both feet together."
+    },
+    "gesture_rule": "Each major gesture starts with 3 frames of anticipation, then eases into final pose with overlapping rubber-hose arm motion.",
+    "jump_rule": "Launch/stretch/float/land all affect body and shadow inversely. Shadow is widest during squash, smallest at apex."
+  },
+  "shots": [
+    {
+      "shot": 1,
+      "name": "Walk In From Right - Left Profile",
+      "frames": [1, 84],
+      "duration_seconds": 3.5,
+      "phase_breakdown": [
+        { "frames": [1, 68], "phase": "walk", "description": "left-profile walk from off-screen right with planted feet" },
+        { "frames": [69, 76], "phase": "deceleration", "description": "shorten stride, reduce body bob, prepare turn" },
+        { "frames": [77, 79], "phase": "turn anticipation", "description": "lean slightly opposite turn, eyes lead" },
+        { "frames": [80, 84], "phase": "turn", "description": "profile to three-quarter to front-facing hero center" }
+      ],
+      "keyframes": [
+        { "frame": 1, "pose": "left profile contact", "x": 2080, "y": 820, "facing": "left_profile", "left_foot": "swing", "right_foot": "plant", "arms": "counter-swing" },
+        { "frame": 16, "pose": "walk cycle contact", "x": 1840, "y": 820, "facing": "left_profile", "left_foot": "plant", "right_foot": "push_off" },
+        { "frame": 32, "pose": "walk cycle contact", "x": 1600, "y": 820, "facing": "left_profile", "right_foot": "plant", "left_foot": "push_off" },
+        { "frame": 48, "pose": "walk cycle contact", "x": 1360, "y": 820, "facing": "left_profile", "left_foot": "plant", "right_foot": "push_off" },
+        { "frame": 64, "pose": "walk cycle contact", "x": 1120, "y": 820, "facing": "left_profile", "right_foot": "plant", "left_foot": "push_off" },
+        { "frame": 76, "pose": "decelerated final contact", "x": 1000, "y": 820, "facing": "left_profile", "left_foot": "plant", "body_bob": "reduced" },
+        { "frame": 79, "pose": "turn anticipation", "x": 980, "y": 820, "facing": "left_profile", "torso": "small wind-up right" },
+        { "frame": 82, "pose": "three-quarter turn", "x": 965, "y": 820, "facing": "front_three_quarter" },
+        { "frame": 84, "pose": "front idle ready", "x": 960, "y": 820, "facing": "front" }
+      ],
+      "foot_plants": [
+        { "frames": [1, 8], "foot": "right", "world_x": 2010 },
+        { "frames": [9, 16], "foot": "left", "world_x": 1850 },
+        { "frames": [17, 24], "foot": "right", "world_x": 1690 },
+        { "frames": [25, 32], "foot": "left", "world_x": 1530 },
+        { "frames": [33, 40], "foot": "right", "world_x": 1370 },
+        { "frames": [41, 48], "foot": "left", "world_x": 1210 },
+        { "frames": [49, 60], "foot": "right", "world_x": 1050 },
+        { "frames": [61, 76], "foot": "left", "world_x": 930 }
+      ]
+    },
+    {
+      "shot": 2,
+      "name": "Presenter Idle",
+      "frames": [85, 132],
+      "duration_seconds": 2,
+      "keyframes": [
+        { "frame": 85, "pose": "front presenter idle", "x": 960, "y": 820, "scale_y": 1, "scale_x": 1 },
+        { "frame": 97, "pose": "inhale", "x": 960, "y": 818, "scale_y": 1.015, "scale_x": 0.995 },
+        { "frame": 109, "pose": "exhale", "x": 960, "y": 822, "scale_y": 0.99, "scale_x": 1.005 },
+        { "frame": 116, "pose": "blink closed", "blink_frames": [114, 119], "eyes": "closed arcs for max 6 frames" },
+        { "frame": 132, "pose": "front presenter idle", "x": 960, "y": 820, "eyes": "open, tiny micro-look center" }
+      ],
+      "rules": [
+        "no body drift",
+        "shadow stays steady except tiny breathing scale",
+        "mouth remains friendly soft grin"
+      ]
+    },
+    {
+      "shot": 3,
+      "name": "Presentation Pose Cycle",
+      "frames": [133, 300],
+      "duration_seconds": 7,
+      "pose_blocks": [
+        { "frames": [133, 153], "pose": "happy", "description": "hands on hips, bright grin, chest lifted" },
+        { "frames": [154, 174], "pose": "confident", "description": "expression-sheet sunglasses allowed, relaxed cool grin, hands on hips, no smugness" },
+        { "frames": [175, 195], "pose": "thinking", "description": "right hand to chin, eyes up-left, mouth relaxed" },
+        { "frames": [196, 216], "pose": "excited", "description": "arms raised, star pupils only frames 205-210, big grin" },
+        { "frames": [217, 237], "pose": "point left", "description": "left arm extends, torso leans 4 degrees left, feet planted" },
+        { "frames": [238, 258], "pose": "point right", "description": "mirror point, torso leans 4 degrees right, feet planted" },
+        { "frames": [259, 279], "pose": "present", "description": "both palms open toward viewer, elbows soft, inviting grin" },
+        { "frames": [280, 300], "pose": "wave", "description": "right hand makes two smooth rubber-hose arcs, body stable" }
+      ],
+      "transition_rule": "Frames 1-3 of each block anticipate opposite gesture. Frames 4-9 ease into pose. Frames 10-16 hold with tiny breathing. Frames 17-21 overlap out to next block.",
+      "shadow_rule": "Shadow remains anchored; only slight width change from torso lean."
+    },
+    {
+      "shot": 4,
+      "name": "Double Jump Celebration",
+      "frames": [301, 396],
+      "duration_seconds": 4,
+      "jumps": [
+        {
+          "jump": 1,
+          "frames": [301, 348],
+          "beats": [
+            { "frames": [301, 308], "phase": "anticipation", "body_y": 838, "scale_y": 0.87, "scale_x": 1.12, "arms": "swing down", "shadow_scale": 1.3 },
+            { "frames": [309, 314], "phase": "launch", "body_y": 790, "scale_y": 1.12, "scale_x": 0.93, "arms": "whip upward", "shadow_scale": 0.9 },
+            { "frames": [315, 322], "phase": "apex", "body_y": 660, "scale_y": 1.02, "scale_x": 0.99, "arms": "fists overhead", "shadow_scale": 0.45 },
+            { "frames": [323, 332], "phase": "descent", "body_y": 760, "scale_y": 1, "scale_x": 1, "arms": "remain high with overlap", "shadow_scale": 0.8 },
+            { "frames": [333, 340], "phase": "landing", "body_y": 836, "scale_y": 0.85, "scale_x": 1.14, "arms": "settle outward", "shadow_scale": 1.35 },
+            { "frames": [341, 348], "phase": "rebound settle", "body_y": 820, "scale_y": 1, "scale_x": 1, "arms": "ready for second jump", "shadow_scale": 1 }
+          ]
+        },
+        {
+          "jump": 2,
+          "frames": [349, 396],
+          "beats": [
+            { "frames": [349, 355], "phase": "anticipation", "body_y": 835, "scale_y": 0.9, "scale_x": 1.1, "arms": "quick down swing", "shadow_scale": 1.25 },
+            { "frames": [356, 361], "phase": "launch", "body_y": 785, "scale_y": 1.1, "scale_x": 0.94, "arms": "whip upward", "shadow_scale": 0.88 },
+            { "frames": [362, 370], "phase": "apex", "body_y": 635, "scale_y": 1.02, "scale_x": 0.99, "arms": "asymmetric fist pump", "shadow_scale": 0.38 },
+            { "frames": [371, 380], "phase": "descent", "body_y": 755, "scale_y": 1, "scale_x": 1, "arms": "overlap down", "shadow_scale": 0.78 },
+            { "frames": [381, 388], "phase": "landing", "body_y": 838, "scale_y": 0.84, "scale_x": 1.15, "arms": "wide celebratory", "shadow_scale": 1.38 },
+            { "frames": [389, 396], "phase": "rebound settle", "body_y": 820, "scale_y": 1, "scale_x": 1, "arms": "return to chest height", "shadow_scale": 1 }
+          ]
+        }
+      ]
+    },
+    {
+      "shot": 5,
+      "name": "Walk In From Left - Right Profile",
+      "frames": [397, 480],
+      "duration_seconds": 3.5,
+      "mirror_of_shot": 1,
+      "phase_breakdown": [
+        { "frames": [397, 464], "phase": "walk", "description": "right-profile walk from off-screen left with planted feet" },
+        { "frames": [465, 472], "phase": "deceleration", "description": "same stride reduction as shot 1" },
+        { "frames": [473, 475], "phase": "turn anticipation", "description": "lean slightly opposite turn, eyes lead" },
+        { "frames": [476, 480], "phase": "turn", "description": "profile to three-quarter to front-facing hero center" }
+      ],
+      "keyframes": [
+        { "frame": 397, "pose": "right profile contact", "x": -160, "y": 820, "facing": "right_profile", "left_foot": "plant", "right_foot": "swing" },
+        { "frame": 412, "pose": "walk cycle contact", "x": 80, "y": 820, "facing": "right_profile", "right_foot": "plant", "left_foot": "push_off" },
+        { "frame": 428, "pose": "walk cycle contact", "x": 320, "y": 820, "facing": "right_profile", "left_foot": "plant", "right_foot": "push_off" },
+        { "frame": 444, "pose": "walk cycle contact", "x": 560, "y": 820, "facing": "right_profile", "right_foot": "plant", "left_foot": "push_off" },
+        { "frame": 460, "pose": "walk cycle contact", "x": 800, "y": 820, "facing": "right_profile", "left_foot": "plant", "right_foot": "push_off" },
+        { "frame": 472, "pose": "decelerated final contact", "x": 920, "y": 820, "facing": "right_profile", "right_foot": "plant", "body_bob": "reduced" },
+        { "frame": 475, "pose": "turn anticipation", "x": 940, "y": 820, "facing": "right_profile", "torso": "small wind-up left" },
+        { "frame": 478, "pose": "three-quarter turn", "x": 955, "y": 820, "facing": "front_three_quarter" },
+        { "frame": 480, "pose": "front idle ready", "x": 960, "y": 820, "facing": "front" }
+      ],
+      "foot_plants": [
+        { "frames": [397, 404], "foot": "left", "world_x": -90 },
+        { "frames": [405, 412], "foot": "right", "world_x": 70 },
+        { "frames": [413, 420], "foot": "left", "world_x": 230 },
+        { "frames": [421, 428], "foot": "right", "world_x": 390 },
+        { "frames": [429, 436], "foot": "left", "world_x": 550 },
+        { "frames": [437, 444], "foot": "right", "world_x": 710 },
+        { "frames": [445, 456], "foot": "left", "world_x": 870 },
+        { "frames": [457, 472], "foot": "right", "world_x": 990 }
+      ]
+    },
+    {
+      "shot": 6,
+      "name": "Final Pose - Fist Pump Finish",
+      "frames": [481, 552],
+      "duration_seconds": 3,
+      "keyframes": [
+        { "frame": 481, "pose": "front hero, fists chest height", "x": 960, "y": 820, "smile": "big excited" },
+        { "frame": 488, "pose": "bounce compression 1", "y": 832, "scale_y": 0.94, "scale_x": 1.06, "shadow_scale": 1.15 },
+        { "frame": 496, "pose": "bounce rebound 1", "y": 812, "scale_y": 1.04, "scale_x": 0.97, "shadow_scale": 0.92 },
+        { "frame": 506, "pose": "bounce compression 2", "y": 828, "scale_y": 0.96, "scale_x": 1.04, "shadow_scale": 1.1 },
+        { "frame": 516, "pose": "hero settle", "y": 820, "scale_y": 1, "scale_x": 1, "shadow_scale": 1 },
+        { "frame": 552, "pose": "stable final hero hold", "x": 960, "y": 820, "fists": "chest to shoulder height", "eyes": "bright", "smile": "encouraging" }
+      ],
+      "rules": [
+        "no drift during hold",
+        "drop shadow grounded",
+        "final silhouette clean enough for freeze frame"
+      ]
+    }
+  ],
+  "ai_video_prompts": {
+    "master_prompt": "Create an 18-24 second 2.5D retro rubber-hose cartoon mascot reel for Cash, the Plainspoke mascot. Locked orthographic camera, straight-on, 1920x1080, 24 fps. Cash is a chunky Arial Black dollar-sign glyph mascot with readable negative spaces, not a generic pillar or coin. Preserve exact colors from the brand rig: teal top highlight #48ecd6, teal base #27c8b4, teal lower shadow #149083, center cream stripe #fcefce to #eccd95 clipped to the dollar-sign vertical strokes, warm peach-orange lower-right bevel extrusion #f88652, dark facial linework #16202e. Big eyes with tall oval pupils, expressive brows, subtle cheek blush, rubber-hose teal arms, stubby teal legs, friendly encouraging grin. Background gradient #42301d to #140e07 with subtle vignette. Single soft upper-left key light and soft amber rim glow. Flat cel shading, no texture noise.",
+    "consistency_clause": "Maintain identical character model from the expression sheet, exact dollar-sign silhouette, exact color hex values, same lower-right bevel direction, same upper-left lighting, no model drift, no proportion changes, no camera movement, no background change. Feet plant and push off visibly. Shadow stays anchored to feet.",
+    "negative_prompt": "no perspective distortion, no camera zoom, no logo, no text, no watermark, no extra limbs, no extra fingers, no color shifts, no lighting change, no morphing, no jitter, no foot sliding, no shadow detachment, no texture noise, no smug expression, no generic mascot body, no coin character, no plain rectangle body, no missing dollar-sign cutouts",
+    "shot_prompts": [
+      { "shot": 1, "prompt": "Cash walks in from off-screen right in left profile. Use proper contact-down-passing-up walk cycle with planted feet, body bob, counter-swinging arms, subtle squash on contact, and drop shadow compression. Decelerate before center and turn smoothly from profile to three-quarter to front." },
+      { "shot": 2, "prompt": "Cash holds presenter idle at center. Gentle 1-2 percent breathing squash and stretch, one quick 6-frame blink, tiny eye micro-movements, friendly grin. No body drift." },
+      { "shot": 3, "prompt": "Cash flows through happy hands-on-hips, confident with optional expression-sheet sunglasses, thinking hand-to-chin, excited arms-up with brief star pupils, point left, point right, present palms open, then two-arc wave. Add 3-frame anticipation before each gesture, smooth spline easing, elastic rubber-hose arm overlap." },
+      { "shot": 4, "prompt": "Cash performs two celebration jumps. Each jump has squash anticipation, stretched launch, clear airborne feet, fists overhead at apex, hang-time, strong squash landing, rebound settle. Second jump has slight timing variation and asymmetric fist pump." },
+      { "shot": 5, "prompt": "Cash mirrors first entrance by walking in from off-screen left in right profile. Same stride length, timing, body bob, deceleration, planted feet, and smooth turn to front." },
+      { "shot": 6, "prompt": "Cash finishes with both fists at chest-to-shoulder height, big excited encouraging smile, two small celebratory bounce compressions, then stable hero pose hold with grounded shadow." }
+    ]
+  },
+  "quality_checklist": [
+    "feet never slide",
+    "shadow always anchored",
+    "no lighting flip",
+    "dollar-sign silhouette and negative spaces stay readable",
+    "cream center stripe stays vertical, centered, and clipped to the dollar glyph",
+    "bevel always on lower-right",
+    "pupil shape stays tall oval except brief star effect",
+    "no jitter between frames",
+    "walk-in stride length matches both directions",
+    "final pose reads upbeat and approachable, not salesy"
+  ]
+}
