@@ -247,6 +247,11 @@ If `ssh main` fails:
 | homelab | **mini** (proto), **future NAS** (real host) | Podman/Quadlet stack. Phase 0 prototyped on mini via Lima VM (`homelab-proto`); real deploy target is a future Debian+ZFS NAS (UGREEN or DIY). Code git-synced, dev on either; no per-machine state until NAS exists. |
 | gnav | **mini** (primary host + canonical chart home), access from **air** | Marine nav platform. **mini is the runtime + master archive home** (`~/Projects/gnav/archive/`, 2 TB drive); air accesses over Tailscale. 4 always-on launchd services on mini: `com.bflanary.gnav.{api,ui,martin,signalk}` (ports 8010/5173/8009/3001), plus a weekly job `com.bflanary.gnav.charts-update` (Mon 04:00). **Charts are mini-canonical**: NOAA S-57 ENCs live at `archive/current/noaa-enc/` (6,938 cells, ~2 GB, gitignored, weekly-refreshed — NOAA regenerates Mondays; job validated 2026-06-08). The weekly job pulls→verifies→atomically promotes→prunes (keeps current+prev only, so it replaces not grows)→rebuilds the routing cell index. Old manually-synced `archive/charts/enc/` retains only the non-NOAA extras (USACE inland IENC + OSM basemap shapefiles); the redundant NOAA copy was reclaimed. **GPS = Waveshare LG290 RTK** on mini USB (`/dev/cu.usbmodem*`, NMEA0183 @460800, needs DTR) → SignalK provider `gnss-lg290-serial`. Other hardware (YDWG-02, RTL-SDR AIS) on mini USB/wifi. **UI is a built bundle** served from `apps/ui/dist` — run `npm run build` in `apps/ui/` to deploy source changes (no dev server). Code git-synced (`github.com/bflanary-prog/gnav`), dev on either; runtime state (archive, ENC charts, cell index, signalk baseDeltas, selfcal.sqlite) is mini-local. |
 
+| voyage_planning | **mini** | Boat-related → mini-canonical (2026-06-25). Weekly fuel-price job `com.bflanary.voyage.fuel-update` (Mon 05:00) runs **only on mini**. Was duplicated on both machines → same-week double commits in `stops.js` that collided on push (2026-06-25); main's copy disabled (plist parked in `~/Library/LaunchAgents/disabled-canonical-mini/`). Code git-synced, dev on either; do not re-enable the launchd job on main. |
+| yacht_search | **mini** (target) — still on **main** pending migration | Boat-related → should be mini-canonical, but `com.ops.yacht-search` (daily 05:07) currently runs **only on main** and has main-only deps: ProtonVPN WireGuard tunnel (`/etc/sudoers.d/yacht-search-wg` + US-VA-92 config), the Lima fetch VM `com.ops.fetchvm` (headless Chrome @127.0.0.1:8910), a Python venv, and Scrape.do/Scrapfly keys in main's Keychain. Migration to mini = port all four pieces, not a flag flip. Until done, it stays on main. |
+
+**All boat-related projects (gnav, helm, voyage_planning, yacht_search, opencpn) are mini-canonical** per Brad (2026-06-25). Any scheduled job for them belongs on mini only — never run a duplicate on main.
+
 When unclear, check the most recent `session_last.md` in `~/.claude/projects/-Users-bflanary*/memory/` — it should declare which machine the work was done on.
 
 ## Switching Machines Procedure
@@ -345,5 +350,62 @@ rsvg-convert -f png -z 2 -o diagrams/<name>.png diagrams/<name>.svg
 ```
 
 Claude Code: a richer `/diagram` skill exists at `~/.claude/skills/diagram/`. Always read the rendered PNG back to self-check (overlaps, legibility, dark mode) before reporting done.
+
+
+# prompt-caching
+
+# Prompt Caching — Mandatory for All Anthropic API Code
+
+Anthropic flagged the StaveandSpirit org for a low cache hit rate (~33% potential API-spend savings, 2026-07-13). Every session that writes or touches Anthropic API code applies these rules. Source: https://platform.claude.com/docs/en/build-with-claude/prompt-caching
+
+## Core rule
+
+Any `messages.create` / `messages.stream` call that reuses a system prompt, tool list, or document context across calls MUST set a cache breakpoint. No exceptions for new code; existing code gets it whenever the file is being touched anyway (surgical-change rule still applies — don't bulk-sweep stable repos unprompted).
+
+## How (Python — the default on this machine)
+
+Use the bauto helpers, not hand-rolled `cache_control` dicts:
+
+```python
+from bauto import anthropic_client
+client = anthropic_client.make_client("<service>", "anthropic_api_key")
+resp = client.messages.create(
+    model="claude-opus-4-8",
+    system=anthropic_client.cached_system(BIG_STABLE_PROMPT),   # breakpoint on last block
+    tools=anthropic_client.cache_tools(MY_TOOLS),               # caches tools prefix too
+    messages=[...],
+)
+```
+
+- Loops/daemons where reuse spans >5 min (launchd jobs, Helm, pipelines): pass `ttl="1h"` — the default 5-minute cache silently expires mid-loop and you pay full price again. 1h writes cost 2× (vs 1.25× for 5m), so it needs ≥3 reads to pay off.
+- Non-bauto projects (Node, raw HTTP): put `"cache_control": {"type": "ephemeral"}` on the last block of the stable prefix (`system` blocks array or last tool definition).
+
+## Design rules (these matter more than the marker)
+
+Caching is a **prefix match** — one changed byte invalidates everything after it. Render order: `tools` → `system` → `messages`.
+
+1. **Freeze the system prompt.** Never interpolate `datetime.now()`, run IDs, UUIDs, user names, or mode flags into `system`. Dynamic context goes into the user message, after the breakpoint.
+2. **Deterministic serialization.** `json.dumps(..., sort_keys=True)`; never iterate a `set` into the prompt. Sort tool lists by name; don't vary the tool set per request.
+3. **Stable-first ordering.** never-changes → per-session → per-turn → per-request, in that order. Breakpoint at the stability boundary, not the end of the whole prompt.
+4. **Multi-turn agent loops:** also mark the last content block of the newest turn so the conversation prefix accrues incrementally.
+5. **Don't cache one-shot calls** or prompts that differ from byte 0 — it only pays the write premium.
+6. **Minimum cacheable prefix** ~1024–4096 tokens depending on model — short prompts silently don't cache (no error, `cache_creation_input_tokens: 0`).
+
+## Verify (do this after adding caching)
+
+Check `resp.usage`: `cache_read_input_tokens > 0` on the second identical-prefix call = working. Zero across repeated calls = a silent invalidator (timestamp/UUID/unsorted JSON/varying tools) — diff the rendered prompt bytes between two requests. `bauto.pricing` / `ops_metrics.log_anthropic_response` already record the cache token classes, so the ops-dashboard Cost & Usage view shows the hit rate.
+
+## Wiring status (full sweep completed 2026-07-13, mini)
+
+Wired:
+- `helm/app/llm/anthropic.py` — router system block cached (covers tools prefix)
+- `youtube-automation/pipeline/stages/shot_list_gen.py` — prompt in its own cached block via `_messages()` helper; 4 validator retries read the prefix at ~0.1x
+- `contract-analysis` — both call sites now cache their system prompt
+- Already caching before sweep: `receipts-vault`, `youtube-automation` script_gen tool
+
+Evaluated and SKIPPED — do not re-attempt unless the prompt shape changes:
+- `helm/app/llm/vision.py`, `plainspoke*/llm.py` + `research/*`, `CSMYS_Automation/src/parser.py`, `HotTub/backend/vision.py` — one-shot prompts and/or prefixes below the model's minimum cacheable size (1024–4096 tokens); a marker would be a silent no-op or pure write premium
+- YT stages that call once per run (visual_qa, thumbnail_judge pairs, comment_responder, script_validator) — prefixes below Haiku's 4096 minimum; runs are days apart so cross-run reuse never survives the TTL
+- Future option (not wired): YT stages all embed the same ~8K-token script in different prompts. Restructuring prompts to put the script FIRST and instructions after would make it a shared cacheable prefix across stages within a run. Invasive; revisit if YT input spend becomes a concern.
 
 
