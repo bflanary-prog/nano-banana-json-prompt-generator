@@ -40,9 +40,11 @@ function parsePrompt(text) {
   else
     subject.type = "object";
 
-  subject.description = text.length > 400 ? text.slice(0, 400) + "…" : text;
+  // Full text, never truncated — description is the only field that preserves
+  // clothing, props, and background detail through the JSON round-trip.
+  subject.description = text;
 
-  if (/\b(smiling|happy|laughing|joy)\b/.test(t))      subject.expression = "smiling, warm";
+  if (/\b(smiling|smile|happy|laughing|laughs|laughter|joy|joyful)\b/.test(t)) subject.expression = "smiling, warm";
   else if (/\b(serious|stern|intense)\b/.test(t))      subject.expression = "serious, focused";
   else if (/\b(sad|crying|melancholy)\b/.test(t))      subject.expression = "melancholic, distant";
   else if (/\b(surprised|shocked)\b/.test(t))          subject.expression = "surprised";
@@ -52,7 +54,7 @@ function parsePrompt(text) {
     const hair = {};
     if (/\b(straight hair|straight)\b/.test(t))        hair.style = "straight";
     else if (/\b(curly|curls)\b/.test(t))              hair.style = "curly";
-    else if (/\b(wavy)\b/.test(t))                     hair.style = "wavy";
+    else if (/\b(wavy|waves)\b/.test(t))               hair.style = "wavy";
     else if (/\b(short hair|short)\b/.test(t))         hair.style = "short";
     else if (/\b(long hair|long)\b/.test(t))           hair.style = "long";
     else if (/\b(bun|updo)\b/.test(t))                 hair.style = "updo bun";
@@ -90,7 +92,7 @@ function parsePrompt(text) {
   }
   // leave location unset if nothing matched — "unspecified environment" pollutes the prompt
 
-  if (/\b(golden hour|magic hour)\b/.test(t))    scene.time = "golden_hour";
+  if (/\b(golden.?hour|magic.?hour)\b/.test(t))  scene.time = "golden_hour";
   else if (/\b(blue hour|dusk)\b/.test(t))        scene.time = "blue_hour";
   else if (/\b(sunrise|dawn)\b/.test(t))          scene.time = "sunrise";
   else if (/\b(sunset)\b/.test(t))                scene.time = "sunset";
@@ -170,7 +172,7 @@ function parsePrompt(text) {
   // Composition
   const comp = {};
   if (/\b(extreme close.?up|ecu|detail shot)\b/.test(t))       comp.framing = "extreme_close_up";
-  else if (/\b(close.?up|cu|headshot|face)\b/.test(t))         comp.framing = "close_up";
+  else if (/\b(close.?up|cu|headshot)\b/.test(t))              comp.framing = "close_up";
   else if (/\b(medium close|waist up)\b/.test(t))              comp.framing = "medium_close_up";
   else if (/\b(medium shot|mid shot|chest up)\b/.test(t))      comp.framing = "medium_shot";
   else if (/\b(full body|full length|head to toe)\b/.test(t))  comp.framing = "full_body";
@@ -235,4 +237,5 @@ function parsePrompt(text) {
   return out;
 }
 
-module.exports = { parsePrompt };
+// Node export; in the browser (loaded via <script src>) parsePrompt is a global.
+if (typeof module !== "undefined" && module.exports) module.exports = { parsePrompt };

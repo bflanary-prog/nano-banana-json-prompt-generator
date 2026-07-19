@@ -27,7 +27,7 @@ app.use("/output", express.static(OUTPUT_DIR));
 
 // Generate image from JSON prompt via Gemini API
 app.post("/generate", async (req, res) => {
-  const { json } = req.body;
+  const { json, rawText } = req.body;
   const apiKey = GEMINI_KEY;
 
   if (!apiKey) {
@@ -60,7 +60,9 @@ app.post("/generate", async (req, res) => {
   if (meta?.quality && meta.quality !== "ultra_photorealistic") parts.push(meta.quality.replace(/_/g, " "));
   if (meta?.resolution) parts.push(meta.resolution + " resolution");
 
-  const promptText = parts.join(", ");
+  // Prefer the original text — JSON round-trip is lossy (clothing, props, and
+  // anything not regex-matched gets dropped). Same rule as generate.js.
+  const promptText = (rawText && rawText.trim()) || parts.join(", ");
   const negativePrompt = (json.advanced?.negative_prompt || []).join(", ");
 
   const payload = JSON.stringify({
