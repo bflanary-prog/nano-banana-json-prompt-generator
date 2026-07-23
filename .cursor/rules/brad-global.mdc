@@ -409,3 +409,5 @@ Evaluated and SKIPPED — do not re-attempt unless the prompt shape changes:
 - Future option (not wired): YT stages all embed the same ~8K-token script in different prompts. Restructuring prompts to put the script FIRST and instructions after would make it a shared cacheable prefix across stages within a run. Invasive; revisit if YT input spend becomes a concern.
 
 
+
+
