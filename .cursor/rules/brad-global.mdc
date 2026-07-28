@@ -112,6 +112,11 @@ Simple and clear with enough context to be meaningful. Not terse to the point of
 - Use headers to organize anything longer than a few sections
 - No wall-of-text responses — break up dense content
 - When referencing code or file paths, use markdown links where clickable in VS Code
+- **Open items / review asks MUST surface the artifact (standing rule, all projects, both machines — Brad, 2026-07-21).** Any item Brad is asked to review, validate, decide, or act on must put the exact artifact in front of him:
+  - **Local files: markdown link with a path RELATIVE to the workspace root** — `[label](relative/path/from/workspace/root)`, e.g. `[video_ids.json](plainspoke/out/video_ids.json)`. This is the global standard link format; it opens in the center panel. (Verified working 2026-07-21 after Brad's editor update; links had regressed earlier that day — if they ever die again, fall back to opening via `code <path>` and flag the regression.)
+  - **Visual yay/nay decisions (thumbnails, mockups, design picks): additionally OPEN the image(s) via `code <path>`** at the moment of asking so the asset is on screen — per the decision-with-asset rule.
+  - **Browser resources (YouTube Studio, dashboards, external sites): URL links.**
+  - Never hand Brad an action item he has to go hunt for.
 
 
 # secrets-handling
@@ -120,203 +125,200 @@ Simple and clear with enough context to be meaningful. Not terse to the point of
 
 ## Source of Truth
 
-macOS Keychain via `keyring` (Python) or `security` (CLI). Never disk, never repo, never `.env` files checked into git, never chat output.
+macOS Keychain via `keyring` (Python) or `security` (CLI). Never disk, never
+repo, never a committed `.env`, never chat output.
 
-Source-of-truth registry: [`~/.claude/keychain-index.json`](../keychain-index.json) — pointer-only catalog (no values). Must be updated on every Keychain write.
+Registry: [`~/.claude/keychain-index.json`](../keychain-index.json) — a
+pointer-only catalog, no values. **Update it on every Keychain write**, or future
+sessions won't know the key exists.
 
-## Core Rules
+## 1. Never echo a secret value
 
-### 1. Never echo a secret value
+Not in chat, not in CLI arguments (visible in `ps`, shell history, and tool
+logs), not in commit messages or diffs, not in screenshots, not in plan files.
 
-- Not in chat output
-- Not in CLI arguments (visible in `ps`, shell history, Bash tool logs)
-- Not in commit messages or commit diffs
-- Not in screenshots
-- Not in plan files or notes
-
-To verify a slot is populated, show only a short prefix:
+To prove a slot is populated, show a short prefix only:
 
 ```bash
 security find-generic-password -s "<service>" -a "<account>" -w | head -c 12
 ```
 
-### 2. Write directly to Keychain — don't make Brad type it
+## 2. Write it yourself — don't make Brad retype it
 
-When a new secret comes up (Brad pastes it, env var, Proton Pass), create the Keychain entry yourself. Don't surface an interactive prompt and make him paste again.
+When a new secret appears, create the Keychain entry for him.
 
 ```bash
-# Good — value comes from env, not argv
+# BAD — value in argv leaks to ps, shell history, and the Bash tool log
+security add-generic-password -s "openrouter" -a "api_key" -w "sk-or-v1-d79..."
+
+# Good — value comes from env, never argv
 security add-generic-password -s "<service>" -a "<account>" -w "$SOME_ENV_VAR" -U
 
-# Good — interactive prompt, value never echoed
+# Good — interactive prompt, nothing echoed
 security add-generic-password -s "<service>" -a "<account>" -U
 
-# BAD — value in argv leaks to ps + shell history + Bash tool log
-security add-generic-password -s "openrouter" -a "api_key" -w "sk-or-v1-d79..."
+# Good — Brad pasted it into chat; take it via secure stdin
+read -s SECRET && security add-generic-password -s "<svc>" -a "<acct>" -w "$SECRET" -U && unset SECRET
 ```
 
-When piping a value from chat into Keychain (Brad pasted it), use secure stdin:
+## 3. Naming
 
-```bash
-read -s SECRET && security add-generic-password -s "<service>" -a "<account>" -w "$SECRET" -U && unset SECRET
+`service` = project-or-vendor slug (`account-agent`, `slated`, `openrouter`);
+`account` = `<vendor>_api_key` or `api_key`. In use: `slated/anthropic_api_key`,
+`account-agent/anthropic_api_key`, `openrouter/api_key`,
+`account-agent/serper_api_key`.
+
+## 4. Index every write
+
+`account-agent` syncs automatically — the module now lives in bauto
+([`bauto/keychain_index.py`](../../Projects/automation-lib/bauto/keychain_index.py)),
+consumed via `lib/credentials.py`. Manual writes from a session must append an
+entry themselves:
+
+```json
+"VENDOR_SCOPE": {
+  "name": "Human-readable label",
+  "note": "What this is for. Keychain slot: service=<svc>, account=<acct>.",
+  "type": "api_key",
+  "vault": "Personal" | "account-agent" | "<scope>"
+}
 ```
 
-### 3. Naming convention
+Pointer only — never a value, in the note or anywhere else.
 
-- `service` = project-or-vendor slug (e.g., `account-agent`, `slated`, `openrouter`)
-- `account` = `<vendor>_api_key` or `api_key` (e.g., `anthropic_api_key`, `api_key`)
+## 5. Exposed secrets — secure in place, do NOT rotate
 
-Examples in current use: `slated / anthropic_api_key`, `account-agent / anthropic_api_key`, `openrouter / api_key`, `account-agent / serper_api_key`.
+**Brad's standing decision (2026-06-07): do not rotate keys, and do not surface
+rotation as a recommendation.** Previously-exposed keys are secured in place
+(moved to Keychain, plaintext removed) and the residual risk is knowingly
+accepted — a deliberate choice, made after seeing the OWASP/GitHub
+rotate-first guidance. This supersedes the older "flag for rotation" practice
+and its 2026-05-17 rotate-list.
 
-### 4. Update keychain-index.json on every write
+So: never write "rotate" / ROTATE flags into docs, the index, or memory. Raise
+rotation **only on an actual problem** — anomalous or unauthorized usage at the
+provider, a *new* exposure, or a secret-scanning alert.
 
-The index is the cross-session catalog Claude reads to know what keys exist. If you write a Keychain entry without updating the index, future sessions won't know it's there.
+Everything else in the hygiene stack still applies: don't paper over a leak
+(clean up plaintext and history when found), no plaintext at rest, and the
+`gitleaks` pre-commit guard (template at `~/.claude/templates/gitleaks-pre-commit`).
+Accepted-risk register with revisit triggers:
+[`~/.claude/SECRETS_REGISTER.md`](../SECRETS_REGISTER.md); the index marks those
+keys `SECURED (no rotation, accepted)`.
 
-- `account-agent` does this automatically via [`lib/keychain_index.py`](../../Projects/account-agent/lib/keychain_index.py) — `lib/credentials.py:setup()` and `lib/keystore.py:write_key()` both sync.
-- Manual Keychain writes from a Claude session must also append/update an entry. Pattern:
+## 6. ProtonPass for human logins
 
-  ```json
-  "VENDOR_SCOPE": {
-    "name": "Human-readable label",
-    "note": "What this is used for. Keychain slot: service=<svc>, account=<acct>.",
-    "type": "api_key",
-    "vault": "Personal" | "account-agent" | "<scope>"
-  }
-  ```
+Login + password combos (account sign-ins, SaaS dashboards) go in ProtonPass.
+Keychain is for programmatic API tokens consumed by code.
 
-- Pointer only. Never put the value in the note field. Never put a value in the index.
+`account-agent`'s `secure_cleanup()`
+([`lib/keystore.py`](../../Projects/account-agent/lib/keystore.py)) `rm -P`
+shreds ephemeral artifacts (`output.env`, `protonpass-import.csv`) after use.
 
-### 5. If a secret was already exposed — flag for rotation
+## 7. Payment cards — never automated
 
-If you find a secret in chat history, `.zshrc`, a plan file, git history, or any keychain-index `note` field, mark it for rotation. Don't paper over the leak. Add `ROTATE — <where it leaked>` to the index note so Brad sees it on next audit.
-
-Current rotate-list (as of 2026-05-17): `ANTHROPIC_ACCOUNT_AGENT`, `ANTHROPIC_CLAUDE_PRO`, `ANTHROPIC_YOUTUBE_PIPELINE`, `OPENROUTER_API_KEY` — all flagged in `keychain-index.json`.
-
-### 6. ProtonPass for non-API credentials
-
-Login + password combos (account sign-ins, SaaS dashboards, etc.) go in ProtonPass, not Keychain. Keychain is for programmatic API tokens consumed by code. ProtonPass is for credentials a human logs in with.
-
-Account-agent's `secure_cleanup()` (in [`lib/keystore.py`](../../Projects/account-agent/lib/keystore.py)) handles ephemeral artifacts (`output.env`, `protonpass-import.csv`) by `rm -P` shredding after use.
-
-### 7. Payment cards — never automated
-
-Account-agent hard-rejects payment card entry from automation flows. Cards are entered by Brad in person at the service's UI, never typed by an LLM or stored in any local artifact. See [`lib/handoff.py:HANDOFF_MESSAGES["payment_entry"]`](../../Projects/account-agent/lib/handoff.py).
+`account-agent` hard-rejects card entry from automation. Brad enters cards
+himself at the service's UI; never typed by an LLM, never stored in a local
+artifact. See
+[`lib/handoff.py`](../../Projects/account-agent/lib/handoff.py)
+`HANDOFF_MESSAGES["payment_entry"]`.
 
 ## Related
 
-- [Memory: never-echo-secrets-write-to-keychain](../projects/-Users-bflanary-Projects/memory/feedback_never_echo_secrets.md) — origin story (2026-05-15 OpenRouter incident)
-- [Memory: account-agent project state](../projects/-Users-bflanary-Projects/memory/project_account_agent.md) — implementation of these patterns in account-agent
-- [`~/.claude/keychain-index.json`](../keychain-index.json) — registry
+- [never-echo-secrets](../projects/_shared/memory/feedback_never_echo_secrets.md) — origin story (2026-05-15 OpenRouter incident)
+- [no-rotation policy](../projects/_shared/memory/feedback_secrets_no_rotation_policy.md) — the §5 decision in full
+- [account-agent state](../projects/_shared/memory/project_account_agent.md)
 
 
 # cross-machine
 
 # Cross-Machine Workflow — Mini ↔ Main
 
-Brad runs work across two Macs on a shared Tailscale tailnet (`tailf54584.ts.net`):
+Two Macs on one Tailscale tailnet (`tailf54584.ts.net`):
 
-| Role | Hostname | Tailscale name | User |
-|------|----------|----------------|------|
-| **main** (primary pipeline machine) | MacBook Air | `brads-macbook-air` | `bflanary` |
-| **mini** (secondary / control surface) | Mac mini | `brads-mac-mini` | `bflanary_mini` |
+| Role | Machine | Tailscale name | User | Projects path |
+|------|---------|----------------|------|---------------|
+| **main** | MacBook Air | `brads-macbook-air` | `bflanary` | `/Users/bflanary/Projects/` |
+| **mini** | Mac mini | `brads-mac-mini` | `bflanary_mini` | `/Users/bflanary_mini/Projects/` |
 
-Both machines run the **open-source Tailscale CLI build** (`brew install tailscale`), which is required for the Tailscale SSH server. The sandboxed App Store / `macsys` build does NOT run the SSH server and was replaced on 2026-05-20.
+`ssh main` / `ssh mini` work via Tailscale SSH (aliases in `~/.ssh/config`, no keys).
 
-## SSH Between Machines
+**Tailscale must be the open-source CLI build** (`brew install tailscale`) — the
+sandboxed App Store / `macsys` build does not run the SSH server. If that
+sysext is ever re-enabled it steals `/var/run/tailscaled.socket` and SSH breaks
+silently: disable it in System Settings → General → Login Items & Extensions →
+Network Extensions, `kill` the sysext daemon, `sudo brew services restart tailscale`.
 
-`ssh main` from mini and `ssh mini` from main both work via Tailscale SSH (no key management, identity via Tailscale account). Aliases are in `~/.ssh/config` on each machine.
-
-If `ssh main` fails:
-- Check Tailscale is up: `tailscale status` (the other machine should appear, not "offline")
-- Check the other machine ran `tailscale up --ssh` (verify with `tailscale debug prefs | grep RunSSH` on that machine — should be `true`)
-- Old offline peers (e.g. the dead `brads-mac-mini` from the daemon swap) can be cleaned up at https://login.tailscale.com/admin/machines
+If `ssh` fails: `tailscale status` (peer offline?), then
+`tailscale debug prefs | grep RunSSH` on the far machine (must be `true`).
+Re-auth: `sudo /opt/homebrew/opt/tailscale/bin/tailscale up --ssh --accept-routes`.
+Brew service `homebrew.mxcl.tailscale`; logs `/opt/homebrew/var/log/tailscaled.log`.
 
 ## Canonical Machine Per Project
 
-| Project | Canonical | Why |
-|---------|-----------|-----|
-| youtube-automation | **main** | Pipelines + work_dirs + OAuth tokens + gcloud + playlist rotation. Drive remotely via `ssh main` + `tmux attach -t pipeline`. |
-| ops-dashboard | both | Read-only on either. Phase 2 will add a mirror helper to read main's `metrics.db` from mini. |
-| slated | either | Deploys remote (Railway). Declare active machine in `session_last.md`. |
-| contract-analysis | either | Same as slated. |
+Code is git-synced everywhere — **develop on either machine**. "Canonical" governs
+where *production launchd jobs and non-git runtime state* live. Drive the
+canonical machine remotely with `ssh <machine>` + tmux.
+
+| Project | Canonical | Notes |
+|---------|-----------|-------|
+| youtube-automation | **mini** | Since 2026-07-21. All FF/MA50/Plainspoke pipelines, watchdog, OAuth pollers, playlist rotation. |
+| plainspoke | **mini** | Engine + research launchd + OAuth + uploads. |
+| helm | **mini** | Podman stack + iMessage bridge + Ollama, always-on. See [[project_helm]]. |
+| gnav | **mini** | Runtime + master chart archive (2 TB drive); air accesses over Tailscale. See [[project_gnav]]. |
+| voyage_planning | **mini** | Weekly fuel job. |
+| brad-auto | **mini** | Inbox-calendar-sync. |
+| homelab | **mini** (proto) → future NAS | |
 | account-agent | **main** | Playwright + ProtonMail Bridge live here. |
-| brad-auto | **mini** | Inbox-calendar-sync runs here via launchd. |
-| helm | **mini** for infra, dev on both | **Podman stack** (machine `helm`, 6 GB): postgres, redis, api, worker, tg, postgrest, caddy on `:8443` fronted by **Tailscale Serve** (tailnet 443). `helm_helm_*` volumes, `~/helm-files` bind, native iMessage bridge + BlueBubbles + Ollama all on mini (always-on). Autostart via launchd `com.bflanary.helm.podman`; stack source `~/podman-cutover/`. **Migrated Colima/Docker → Podman 2026-06-01** (cutover doc: `helm/docs/podman-migration/`); Colima + Docker + old rollback volumes purged from both machines 2026-06-03. Code git-synced, dev on either. |
-| AI-Crew | either | Pure code, no per-machine state. |
-| printing-press | either | Pure code. |
-| homelab | **mini** (proto), **future NAS** (real host) | Podman/Quadlet stack. Phase 0 prototyped on mini via Lima VM (`homelab-proto`); real deploy target is a future Debian+ZFS NAS (UGREEN or DIY). Code git-synced, dev on either; no per-machine state until NAS exists. |
-| gnav | **mini** (primary host + canonical chart home), access from **air** | Marine nav platform. **mini is the runtime + master archive home** (`~/Projects/gnav/archive/`, 2 TB drive); air accesses over Tailscale. 4 always-on launchd services on mini: `com.bflanary.gnav.{api,ui,martin,signalk}` (ports 8010/5173/8009/3001), plus a weekly job `com.bflanary.gnav.charts-update` (Mon 04:00). **Charts are mini-canonical**: NOAA S-57 ENCs live at `archive/current/noaa-enc/` (6,938 cells, ~2 GB, gitignored, weekly-refreshed — NOAA regenerates Mondays; job validated 2026-06-08). The weekly job pulls→verifies→atomically promotes→prunes (keeps current+prev only, so it replaces not grows)→rebuilds the routing cell index. Old manually-synced `archive/charts/enc/` retains only the non-NOAA extras (USACE inland IENC + OSM basemap shapefiles); the redundant NOAA copy was reclaimed. **GPS = Waveshare LG290 RTK** on mini USB (`/dev/cu.usbmodem*`, NMEA0183 @460800, needs DTR) → SignalK provider `gnss-lg290-serial`. Other hardware (YDWG-02, RTL-SDR AIS) on mini USB/wifi. **UI is a built bundle** served from `apps/ui/dist` — run `npm run build` in `apps/ui/` to deploy source changes (no dev server). Code git-synced (`github.com/bflanary-prog/gnav`), dev on either; runtime state (archive, ENC charts, cell index, signalk baseDeltas, selfcal.sqlite) is mini-local. |
+| yacht_search | **main** — migration pending | Should be mini (boat), but `com.ops.yacht-search` has four main-only deps: ProtonVPN WireGuard tunnel, the Lima fetch VM `com.ops.fetchvm`, a Python venv, and Scrape.do/Scrapfly keys in main's Keychain. Migration is a port, not a flag flip. |
+| ops-dashboard | both | Read-only on either. |
+| slated · contract-analysis | either | Deploy remote; declare active machine in `session_last.md`. |
+| AI-Crew · printing-press | either | Pure code, no per-machine state. |
 
-| voyage_planning | **mini** | Boat-related → mini-canonical (2026-06-25). Weekly fuel-price job `com.bflanary.voyage.fuel-update` (Mon 05:00) runs **only on mini**. Was duplicated on both machines → same-week double commits in `stops.js` that collided on push (2026-06-25); main's copy disabled (plist parked in `~/Library/LaunchAgents/disabled-canonical-mini/`). Code git-synced, dev on either; do not re-enable the launchd job on main. |
-| yacht_search | **mini** (target) — still on **main** pending migration | Boat-related → should be mini-canonical, but `com.ops.yacht-search` (daily 05:07) currently runs **only on main** and has main-only deps: ProtonVPN WireGuard tunnel (`/etc/sudoers.d/yacht-search-wg` + US-VA-92 config), the Lima fetch VM `com.ops.fetchvm` (headless Chrome @127.0.0.1:8910), a Python venv, and Scrape.do/Scrapfly keys in main's Keychain. Migration to mini = port all four pieces, not a flag flip. Until done, it stays on main. |
+**All boat projects (gnav, helm, voyage_planning, yacht_search, opencpn) are
+mini-canonical** (Brad, 2026-06-25).
 
-**All boat-related projects (gnav, helm, voyage_planning, yacht_search, opencpn) are mini-canonical** per Brad (2026-06-25). Any scheduled job for them belongs on mini only — never run a duplicate on main.
+### The rule that matters
 
-When unclear, check the most recent `session_last.md` in `~/.claude/projects/-Users-bflanary*/memory/` — it should declare which machine the work was done on.
+**Never run the same scheduled job on both machines.** Duplicates have caused
+real damage twice: duplicated `voyage_planning` fuel jobs produced same-week
+double commits that collided on push (2026-06-25), and duplicate YT pipelines
+produce duplicate playlist inserts because `~/.yt_playlist_rotation.json` is
+mini-local and unsynced.
 
-## Switching Machines Procedure
+main's disabled production plists are parked in
+`~/Library/LaunchAgents/disabled-canonical-mini/`. **Do not re-enable them.**
+Remotion `com.ops.plainspoke-pipeline` is permanently disabled (off-brand).
 
-1. **Wrap up the current machine** — commit + push everything, write a `session_last.md` entry to the project's memory folder.
-2. **Move to the other machine** — `git pull` the relevant repo(s) + `~/.claude`.
-3. **If you need state that isn't in git** — see "Ad-hoc state sync" below.
-4. **Driving the canonical machine remotely** —
-   ```
-   ssh main             # or `ssh mini`
-   tmux new -s pipeline # first time, or `tmux attach -t pipeline` to rejoin
-   # ... do work ...
-   # Ctrl-b d to detach. Work survives the SSH disconnect.
-   ```
+To run a YT pipeline "from" main: `ssh mini` and trigger it there.
 
-## Playlist Rotation Rule (Critical)
+When unclear which machine did the work, check the newest `session_last.md` in
+`~/.claude/projects/-Users-bflanary*/memory/`.
 
-YT pipelines run **only on main**. `~/.yt_playlist_rotation.json` is main-local state and is NOT synced. Running a YT pipeline on mini while main is also active produces duplicate playlist inserts.
+## Switching Machines
 
-To drive a YT pipeline from mini: `ssh main` and trigger it on main. Do not run YT-pipeline launchd plists on mini.
-
-If multi-machine YT rotation ever becomes a real need, a Phase 3 plan must move `~/.yt_playlist_rotation.json` to git or a shared store with lock semantics.
+1. Wrap up: commit + push, write `session_last.md`.
+2. On the other machine: `git pull` the repo(s) **and** `~/.claude`.
+3. Non-git state needs rsync (below).
 
 ## Ad-hoc State Sync
 
-State files (gcloud creds, YT tokens, metrics.db, work_dirs) are NOT in git and NOT auto-synced between machines. When you need them on the other machine, use rsync:
+Runtime state (gcloud creds, YT tokens, metrics.db, work_dirs) is not in git and
+never auto-syncs.
 
 ```bash
-# gcloud creds (after a fresh `gcloud auth login` on main)
-rsync -av main:~/.config/gcloud/ ~/.config/gcloud/
-
-# YT OAuth tokens
-rsync -av main:~/.yt_tokens/ ~/.yt_tokens/
-
-# Pull main's metrics.db to a read-only mirror on mini (for dashboard inspection)
-rsync -av main:~/.ops_metrics/metrics.db ~/.ops_metrics/metrics_main.db
-
-# Inspect a specific work_dir
-rsync -av main:~/Projects/youtube-automation/work/<channel>/<run_id>/ /tmp/inspect-<run_id>/
+rsync -av mini:~/.config/gcloud/ ~/.config/gcloud/          # after a fresh gcloud auth login
+rsync -av mini:~/.yt_tokens/ ~/.yt_tokens/                  # mini = source of truth
+rsync -av mini:~/.ops_metrics/metrics.db ~/.ops_metrics/metrics_mini.db   # read-only mirror
+rsync -av mini:~/Projects/youtube-automation/work/<channel>/<run_id>/ /tmp/inspect-<run_id>/
 ```
 
-Phase 2 will wrap these in `~/Projects/AI-Crew/scripts/sync/` helpers.
+## Sudo
 
-## Sudo Convenience
-
-Each machine has a narrow NOPASSWD sudoers entry at `/etc/sudoers.d/<user>` covering tailscale CLI, `brew services`, `kill`, `rm`, `cp`, `mv`, `launchctl`, `systemextensionsctl`. Anything outside that list still prompts.
-
-Audit/add to scope: `sudo visudo -f /etc/sudoers.d/<user>`. Validate with `visudo -c` before saving.
-
-## Tailscale Daemon — Reminders
-
-- Tailscale on these machines is the **CLI build** (`brew install tailscale`), NOT the sandboxed GUI / Mac App Store version.
-- The brew service is `homebrew.mxcl.tailscale` (LaunchDaemon at `/Library/LaunchDaemons/`).
-- Logs: `/opt/homebrew/var/log/tailscaled.log`.
-- Re-auth: `sudo /opt/homebrew/opt/tailscale/bin/tailscale up --ssh --accept-routes`.
-- Status: `tailscale status`.
-- If the sandboxed `macsys` system extension is somehow re-enabled, it will steal `/var/run/tailscaled.socket` and SSH will silently break. Toggle it off in System Settings → General → Login Items & Extensions → Network Extensions, then `kill` the sysext daemon process, then `sudo brew services restart tailscale`.
-
-## Verification Checklist (Phase 1)
-
-- [ ] `ssh main` from mini connects without password.
-- [ ] `ssh mini` from main connects without password.
-- [ ] `tailscale debug prefs` on each machine shows `"RunSSH": true`.
-- [ ] `tmux` survives a disconnect end-to-end.
-- [ ] `~/.claude/rules/cross-machine.md` (this file) is reachable on both machines after `git pull` of `~/.claude`.
+Narrow NOPASSWD entry per machine at `/etc/sudoers.d/<user>`: tailscale CLI,
+`brew services`, `kill`, `rm`, `cp`, `mv`, `launchctl`, `systemextensionsctl`.
+Anything else prompts. Edit with `sudo visudo -f /etc/sudoers.d/<user>`;
+validate with `visudo -c`.
 
 
 # diagrams
@@ -395,19 +397,21 @@ Caching is a **prefix match** — one changed byte invalidates everything after 
 
 Check `resp.usage`: `cache_read_input_tokens > 0` on the second identical-prefix call = working. Zero across repeated calls = a silent invalidator (timestamp/UUID/unsorted JSON/varying tools) — diff the rendered prompt bytes between two requests. `bauto.pricing` / `ops_metrics.log_anthropic_response` already record the cache token classes, so the ops-dashboard Cost & Usage view shows the hit rate.
 
-## Wiring status (full sweep completed 2026-07-13, mini)
+## Sweep status (2026-07-13, mini) — the part worth remembering
 
-Wired:
-- `helm/app/llm/anthropic.py` — router system block cached (covers tools prefix)
-- `youtube-automation/pipeline/stages/shot_list_gen.py` — prompt in its own cached block via `_messages()` helper; 4 validator retries read the prefix at ~0.1x
-- `contract-analysis` — both call sites now cache their system prompt
-- Already caching before sweep: `receipts-vault`, `youtube-automation` script_gen tool
+Wired already: helm router, YT `shot_list_gen` + `script_gen`, contract-analysis,
+receipts-vault. The code carries the markers; don't re-audit it.
 
-Evaluated and SKIPPED — do not re-attempt unless the prompt shape changes:
-- `helm/app/llm/vision.py`, `plainspoke*/llm.py` + `research/*`, `CSMYS_Automation/src/parser.py`, `HotTub/backend/vision.py` — one-shot prompts and/or prefixes below the model's minimum cacheable size (1024–4096 tokens); a marker would be a silent no-op or pure write premium
-- YT stages that call once per run (visual_qa, thumbnail_judge pairs, comment_responder, script_validator) — prefixes below Haiku's 4096 minimum; runs are days apart so cross-run reuse never survives the TTL
-- Future option (not wired): YT stages all embed the same ~8K-token script in different prompts. Restructuring prompts to put the script FIRST and instructions after would make it a shared cacheable prefix across stages within a run. Invasive; revisit if YT input spend becomes a concern.
+**Evaluated and deliberately SKIPPED — do not re-attempt unless the prompt shape
+changes:** `helm/app/llm/vision.py`, `plainspoke*/llm.py` + `research/*`,
+`CSMYS_Automation/src/parser.py`, `HotTub/backend/vision.py`, and the
+once-per-run YT stages (visual_qa, thumbnail_judge, comment_responder,
+script_validator). All are one-shot and/or below the model's minimum cacheable
+prefix, so a marker is a silent no-op or pure write premium.
 
-
+Open idea, not wired: YT stages all embed the same ~8K-token script in different
+prompts. Putting the script FIRST and instructions after would make it a shared
+cacheable prefix across stages within a run. Invasive — revisit only if YT input
+spend becomes a concern.
 
 
