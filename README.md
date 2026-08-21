@@ -1,10 +1,10 @@
 # Nano Banana 2 — JSON Prompt Generator
 
-Convert plain English descriptions into structured JSON prompts for precise AI image generation with Google's Nano Banana 2 (Gemini 3.1 Flash Image / Imagen 4).
+Convert plain English descriptions into structured JSON prompts for precise AI image generation with Google's Gemini image models (Gemini 3.1 Flash Image and Pro).
 
 ## How it works
 
-**Generating:** Your plain English description is sent directly to Imagen 4 (full quality model) — exactly as you typed it, nothing stripped. In parallel, it's also parsed into a structured JSON sidecar saved alongside the image.
+**Generating:** Your plain English description is sent to the Gemini API — exactly as you typed it, nothing stripped. In parallel, it's also parsed into a structured JSON sidecar saved alongside the image.
 
 **Editing:** Open the `.json` sidecar, tweak a single field, and re-run. Only what you changed will differ — the JSON gives you surgical control over color, lighting, composition, camera, and style independently without rewriting the whole prompt.
 
@@ -38,7 +38,7 @@ json-prompting/
    ```
    GEMINI_API_KEY=your_key_here
    ```
-   Get a key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey). Image generation requires a paid plan (~$0.03/image).
+   Get a key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey). Image generation requires a paid plan.
 
 ## Usage
 
@@ -103,7 +103,6 @@ Only the fields you changed will update — everything else stays consistent.
 
 | Category | Keywords |
 |----------|----------|
-| Aspect ratio | `widescreen`, `cinematic`, `portrait`, `square` |
 | Style | `anime`, `oil painting`, `watercolor`, `sketch`, `3d render` |
 | Resolution | `4K`, `2K`, `1080p` |
 | Time of day | `golden hour`, `sunset`, `sunrise`, `midnight`, `blue hour` |
@@ -118,6 +117,8 @@ Only the fields you changed will update — everything else stays consistent.
 | Aesthetic | `cinematic`, `vintage`, `noir`, `cyberpunk`, `minimalist`, `luxury` |
 | Hair | `straight`, `curly`, `wavy`, `blonde`, `brunette`, `auburn` |
 | Exclusions | `no people`, `no text`, `no reflections`, `no shadows` |
+
+**Note on aspect ratios:** Specify dimensions via the `imageConfig.aspectRatio` parameter (e.g. `16:9`, `9:16`, `1:1`, `4:3`, `3:2`, `21:9`), not through keywords. The aspect ratio parameter fully controls canvas dimensions; aspect-ratio keywords in the prompt text are redundant and will not change output dimensions.
 
 ## VS Code Workflow (Global Convention)
 
@@ -134,9 +135,23 @@ Every project in `~/Projects/` follows this pattern:
 
 To apply this pattern to a new project: add `"start": "node server.js"` to its `package.json` and copy `.vscode/tasks.json` into it.
 
+## Model Pricing (Paid Tier Only)
+
+| Model | Alias | Price | Max Resolution |
+|-------|-------|-------|-----------------|
+| gemini-3.1-flash-lite-image | `lite` (default) | $0.0336 per 1K images | 1024px |
+| gemini-3.1-flash-image | `flash3` | $0.045–$0.151 per 1K–4K images | 4096px |
+| gemini-3-pro-image | `pro` | $0.134–$0.24 per 1K–4K images | 4096px |
+
+The default (`flash3-lite`) is the most cost-effective and produces high-quality results for most use cases. No free tier available for image generation.
+
+## Known Issues
+
+- All generated images carry a SynthID watermark (mandatory, no opt-out).
+- `gemini-2.5-flash-image` shuts down 2026-10-02 — migrate to `gemini-3.1-flash-image` or later.
+
 ## Resources
 
-- [Nano Banana 2 announcement](https://blog.google/innovation-and-ai/technology/ai/nano-banana-2/)
-- [AI Studio](https://aistudio.google.com) — test prompts for free in the browser
+- [AI Studio](https://aistudio.google.com) — test prompts in the browser
 - [JSON schema reference](https://gist.github.com/alexewerlof/1d13401a7647339469141dc2960e66a9)
 - [awesome-nanobanana-pro](https://github.com/ZeroLu/awesome-nanobanana-pro) — community prompt examples

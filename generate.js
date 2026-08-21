@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-// generate.js — text → JSON → Gemini Imagen → output/
+// generate.js — text → JSON → Gemini Image → output/
 // No LLMs. No browser. No server.
 // Usage:
 //   node generate.js "a rainy Tokyo alley at night, neon, 35mm film"
 //   node generate.js --json output/image-1234567890.json   (re-run from saved JSON)
+//   node generate.js --model pro "..."                      (opt into a pricier model)
 
 require("dotenv").config();
 const https = require("https");
@@ -11,14 +12,51 @@ const fs = require("fs");
 const path = require("path");
 const { spawn } = require("child_process");
 
-const args = process.argv.slice(2);
-const jsonFlagIndex = args.indexOf("--json");
-const fromJsonFile = jsonFlagIndex !== -1 ? args[jsonFlagIndex + 1] : null;
-const text = fromJsonFile ? null : args.join(" ").trim();
+// Default is the cheapest, longest-lived model. gemini-2.5-flash-image is
+// NOT aliased — it retires 2026-10-02, don't hand anyone an easy handle on
+// it (exact-ID passthrough still reaches it if truly needed). Bump quality
+// one flag at a time, never by editing this file.
+const MODEL_ALIASES = {
+  lite: "gemini-3.1-flash-lite-image",
+  flash3: "gemini-3.1-flash-image",
+  pro: "gemini-3-pro-image",
+};
+const DEFAULT_MODEL = "gemini-3.1-flash-lite-image";
+// Per-model, per-size price ($/image). Keyed by the imageConfig.imageSize
+// actually used for the call ("1K" when no size is sent — every model
+// renders 1K by default). Source: ai.google.dev/gemini-api/docs/pricing.
+const MODEL_PRICING = {
+  "gemini-2.5-flash-image": { "1K": 0.039 }, // retiring 2026-10-02; flat rate, ignores imageSize
+  "gemini-3.1-flash-lite-image": { "1K": 0.0336 },
+  "gemini-3.1-flash-image": { "0.5K": 0.045, "1K": 0.067, "2K": 0.101, "4K": 0.151 },
+  "gemini-3-pro-image": { "1K": 0.134, "2K": 0.134, "4K": 0.24 },
+};
+// Only these two honor generationConfig.imageConfig.imageSize.
+// gemini-3.1-flash-lite-image is 1K-only and must never receive the field —
+// sending it is not just a no-op risk, it's excluded by design (see the
+// resolution-gating note in generateImage). gemini-2.5-flash-image silently
+// ignores it and always renders 1024x1024 (verified against the live API).
+const SUPPORTS_IMAGE_SIZE = (model) => model === "gemini-3.1-flash-image" || model === "gemini-3-pro-image";
+
+function extractFlag(arr, flag) {
+  const i = arr.indexOf(flag);
+  if (i === -1) return { value: null, rest: arr };
+  const rest = arr.slice();
+  const value = rest[i + 1];
+  rest.splice(i, 2);
+  return { value, rest };
+}
+
+const rawArgs = process.argv.slice(2);
+const { value: fromJsonFile, rest: argsAfterJson } = extractFlag(rawArgs, "--json");
+const { value: modelArg, rest: argsAfterModel } = extractFlag(argsAfterJson, "--model");
+const MODEL = modelArg ? (MODEL_ALIASES[modelArg] || modelArg) : DEFAULT_MODEL;
+const text = fromJsonFile ? null : argsAfterModel.join(" ").trim();
 
 if (!fromJsonFile && !text) {
   console.error('Usage: node generate.js "your prompt here"');
   console.error('       node generate.js --json output/image-1234567890.json');
+  console.error('       node generate.js --model lite|flash3|pro|<model-id> "..."');
   process.exit(1);
 }
 
@@ -78,29 +116,59 @@ function buildPromptText(json) {
   return parts.join(", ");
 }
 
-// ── Call Gemini Imagen API ────────────────────────────────────────────────────
+// meta.resolution ("3840x2160" etc.) → imageConfig.imageSize ("4K" etc.), only
+// for models that accept it. Only ever set from an explicit resolution keyword
+// the user typed (4k/2k/1080p) — never defaulted, so this can't silently push
+// spend above 1K.
+function resolutionToImageSize(resolution) {
+  if (resolution === "3840x2160") return "4K";
+  if (resolution === "2560x1440") return "2K";
+  if (resolution === "1920x1080") return "1K";
+  return null;
+}
 
-async function generateImage(json, rawText) {
+// ── Call Gemini Image API ─────────────────────────────────────────────────────
+
+async function generateImage(json, rawText, model) {
   // Use the original text directly when available — JSON round-trip is lossy
   // (clothing, props, and anything not regex-matched gets dropped from buildPromptText)
-  const promptText = rawText || buildPromptText(json);
-  const negativePrompt = (json.advanced?.negative_prompt || []).join(", ");
+  let promptText = rawText || buildPromptText(json);
 
-  console.log(`\nPrompt: ${promptText}`);
-  console.log("Calling Imagen API...");
+  // generateContent has no negativePrompt param — fold it into the prompt text.
+  const negativePrompt = json.advanced?.negative_prompt || [];
+  if (negativePrompt.length) promptText += `\nAvoid: ${negativePrompt.join(", ")}.`;
+
+  const imageConfig = { aspectRatio: json.meta?.aspect_ratio || "1:1" };
+  const requestedSize = resolutionToImageSize(json.meta?.resolution);
+  if (requestedSize && SUPPORTS_IMAGE_SIZE(model)) {
+    imageConfig.imageSize = requestedSize;
+  } else if (requestedSize && model === "gemini-3.1-flash-lite-image" && requestedSize !== "1K") {
+    // Never auto-upgrade the model to satisfy a resolution request — that
+    // would silently multiply the per-image cost. Warn and render at 1K.
+    const flash3Price = MODEL_PRICING["gemini-3.1-flash-image"]?.[requestedSize];
+    console.log(
+      `Note: ${model} is 1K-only; ignoring ${requestedSize} request. ` +
+      `Use --model flash3 for ${requestedSize}${flash3Price != null ? ` ($${flash3Price}/image)` : ""}.`
+    );
+  }
+
+  const price = MODEL_PRICING[model]?.[imageConfig.imageSize || "1K"];
+  console.log(`\nModel: ${model}${price != null ? ` ($${price}/image)` : ""}`);
+  console.log(`Prompt: ${promptText}`);
+  console.log("Calling Gemini API...");
 
   const payload = JSON.stringify({
-    instances: [{ prompt: promptText, negativePrompt }],
-    parameters: {
-      sampleCount: 1,
-      aspectRatio: json.meta?.aspect_ratio || "1:1",
+    contents: [{ parts: [{ text: promptText }] }],
+    generationConfig: {
+      responseModalities: ["IMAGE"],
+      imageConfig,
     },
   });
 
   return new Promise((resolve, reject) => {
     const options = {
       hostname: "generativelanguage.googleapis.com",
-      path: `/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`,
+      path: `/v1beta/models/${model}:generateContent?key=${apiKey}`,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -115,11 +183,24 @@ async function generateImage(json, rawText) {
         try {
           const parsed = JSON.parse(data);
           if (parsed.error) return reject(new Error(parsed.error.message));
-          const prediction = parsed?.predictions?.[0];
-          if (!prediction?.bytesBase64Encoded) return reject(new Error("No image returned from API"));
-          resolve({ data: prediction.bytesBase64Encoded, mimeType: prediction.mimeType || "image/png" });
+
+          const candidate = parsed?.candidates?.[0];
+          const parts = candidate?.content?.parts || [];
+          const imgPart = parts.find((p) => p.inlineData || p.inline_data);
+          if (imgPart) {
+            const img = imgPart.inlineData || imgPart.inline_data;
+            return resolve({ data: img.data, mimeType: img.mimeType || img.mime_type || "image/png" });
+          }
+
+          // No image part: either a safety refusal (finishReason) or a
+          // text-only reply. Surface whichever we have instead of a bare
+          // "no image" message.
+          const textPart = parts.find((p) => p.text)?.text;
+          const reason = candidate?.finishReason;
+          const detail = [reason && `finishReason: ${reason}`, textPart].filter(Boolean).join(" — ");
+          reject(new Error(`No image returned from API${detail ? ` (${detail})` : ""}`));
         } catch (e) {
-          reject(new Error("Failed to parse API response"));
+          reject(new Error(`Failed to parse API response: ${data.slice(0, 400)}`));
         }
       });
     });
@@ -143,9 +224,9 @@ async function generateImage(json, rawText) {
       json = parsePrompt(text);
     }
 
-    // Pass raw text for new generations so Imagen gets the full unmodified prompt.
+    // Pass raw text for new generations so Gemini gets the full unmodified prompt.
     // For --json re-runs, rawText is null and buildPromptText reconstructs from JSON.
-    const imageData = await generateImage(json, fromJsonFile ? null : text);
+    const imageData = await generateImage(json, fromJsonFile ? null : text, MODEL);
 
     const timestamp = Date.now();
     const ext = imageData.mimeType.split("/")[1] || "png";

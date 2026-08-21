@@ -1,5 +1,9 @@
 # JSON Prompting for Nano Banana 2 — Research Notes
 
+**SUPERSEDED (2026-08-21):** This document describes the retired Imagen 4 era (Google shut down Imagen 4 on 2026-08-17). The tool has migrated to Gemini's `:generateContent` endpoint. See `PLAN-2026-08-21.md` for current API details.
+
+**Fields documented below that never mapped to any real Google API parameter:** `meta.steps`, `meta.guidance_scale`, `meta.magic_prompt_enhancer`, `advanced.hdr_mode`. These were never functional and should not be used.
+
 > Compiled from: YouTube transcripts (143K+ views), Reddit (r/PromptEngineering, r/AIArt, r/GoogleGemini), GitHub repos, and web sources.
 > Last updated: April 2026
 
