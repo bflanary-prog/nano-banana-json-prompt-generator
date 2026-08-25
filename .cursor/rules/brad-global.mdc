@@ -272,11 +272,20 @@ canonical machine remotely with `ssh <machine>` + tmux.
 | account-agent | **main** | Playwright + ProtonMail Bridge live here. |
 | yacht_search | **main** — migration pending | Should be mini (boat), but `com.ops.yacht-search` has four main-only deps: ProtonVPN WireGuard tunnel, the Lima fetch VM `com.ops.fetchvm`, a Python venv, and Scrape.do/Scrapfly keys in main's Keychain. Migration is a port, not a flag flip. |
 | ops-dashboard | both | Read-only on either. |
-| slated · contract-analysis | either | Deploy remote; declare active machine in `session_last.md`. |
+| contract-analysis | **main** (Air) | Declared 2026-08-23. Runs from `~/Projects/contract_comparison/backend` on **:8001**, labels `com.bflanary.contract-analysis.{backend,frontend}`. mini has a second live deployment of the *same repo* (`~/Projects/contract-analysis`, **:8000**, labels `com.contractanalysis.*`) — park it rather than leaving two. |
+| slated | either | Deploy remote; declare active machine in `session_last.md`. |
 | AI-Crew · printing-press | either | Pure code, no per-machine state. |
 
-**All boat projects (gnav, helm, voyage_planning, yacht_search, opencpn) are
-mini-canonical** (Brad, 2026-06-25).
+**Boat projects are mini-canonical** (Brad, 2026-06-25): gnav, helm,
+voyage_planning, opencpn.
+
+**yacht_search is the one open exception.** The intent is mini — it is a boat
+project — but the runtime is on **main** and stays there until the port lands;
+the table row above lists the four main-only dependencies that make it a port
+rather than a flag flip. Until then, main is where it runs and where it is
+fixed. Stating the aspiration as fact is what previously made this section
+contradict its own table, and a rule that contradicts itself gets read
+selectively — the reader keeps whichever half suits them.
 
 ### The rule that matters
 
@@ -391,7 +400,7 @@ Caching is a **prefix match** — one changed byte invalidates everything after 
 3. **Stable-first ordering.** never-changes → per-session → per-turn → per-request, in that order. Breakpoint at the stability boundary, not the end of the whole prompt.
 4. **Multi-turn agent loops:** also mark the last content block of the newest turn so the conversation prefix accrues incrementally.
 5. **Don't cache one-shot calls** or prompts that differ from byte 0 — it only pays the write premium.
-6. **Minimum cacheable prefix** ~1024–4096 tokens depending on model — short prompts silently don't cache (no error, `cache_creation_input_tokens: 0`).
+6. **Minimum cacheable prefix** 512–4096 tokens depending on model (exact per-model values below — they are *not* monotonic across generations) — short prompts silently don't cache (no error, `cache_creation_input_tokens: 0`).
 
 ## Verify (do this after adding caching)
 
@@ -405,13 +414,13 @@ receipts-vault. The code carries the markers — don't re-audit *those files* on
 **But that is not a licence to stop looking.** A point-in-time sweep decays: spend
 composition drifts, new consumers appear that the sweep never saw, and a model swap can
 silently drop a prompt below its cacheable minimum. That is exactly what happened between
-2026-07-13 and 2026-08-22 — brad-kb did not exist at sweep time and became 63% of direct
+2026-07-13 and 2026-08-25 — brad-kb did not exist at sweep time and became 63% of direct
 API spend, and Anthropic's mailing list ended up being the monitor.
 
 **Standing verification (do this instead of re-auditing files):** the check is on *new or
 changed (api_key, model) pairs*, not on already-swept code. A pair with >1M uncached
 tokens/30d and zero cache reads for 7+ days is the signal. Full audit and monitor design:
-[`ops-docs/audits/anthropic-cache-efficiency-2026-08-22.md`](../../Projects/ops-docs/audits/anthropic-cache-efficiency-2026-08-22.md).
+[`ops-docs/audits/anthropic-cache-efficiency-2026-08-25.md`](../../Projects/ops-docs/audits/anthropic-cache-efficiency-2026-08-25.md).
 
 **A 0% hit rate is often correct** — a once-daily job (cache TTL maxes at 1h), a one-shot
 call, or a prompt under the model's minimum prefix. Never "fix" one without checking
@@ -420,7 +429,7 @@ call, or a prompt under the model's minimum prefix. Never "fix" one without chec
 Opus 4.6). Dropping below is a silent no-op, never an error.
 
 **Caching is not the only lever, and often not the biggest.** It prices input only — on
-the workload audited 2026-08-22, output was 53% of spend. Check model choice and the Batch
+the workload audited 2026-08-25, output was 53% of spend. Check model choice and the Batch
 API (50%, and it halves output too) before reaching for `cache_control`.
 
 **Evaluated and deliberately SKIPPED — do not re-attempt unless the prompt shape
