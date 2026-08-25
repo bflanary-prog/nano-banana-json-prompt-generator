@@ -400,7 +400,28 @@ Check `resp.usage`: `cache_read_input_tokens > 0` on the second identical-prefix
 ## Sweep status (2026-07-13, mini) — the part worth remembering
 
 Wired already: helm router, YT `shot_list_gen` + `script_gen`, contract-analysis,
-receipts-vault. The code carries the markers; don't re-audit it.
+receipts-vault. The code carries the markers — don't re-audit *those files* on a whim.
+
+**But that is not a licence to stop looking.** A point-in-time sweep decays: spend
+composition drifts, new consumers appear that the sweep never saw, and a model swap can
+silently drop a prompt below its cacheable minimum. That is exactly what happened between
+2026-07-13 and 2026-08-22 — brad-kb did not exist at sweep time and became 63% of direct
+API spend, and Anthropic's mailing list ended up being the monitor.
+
+**Standing verification (do this instead of re-auditing files):** the check is on *new or
+changed (api_key, model) pairs*, not on already-swept code. A pair with >1M uncached
+tokens/30d and zero cache reads for 7+ days is the signal. Full audit and monitor design:
+[`ops-docs/audits/anthropic-cache-efficiency-2026-08-22.md`](../../Projects/ops-docs/audits/anthropic-cache-efficiency-2026-08-22.md).
+
+**A 0% hit rate is often correct** — a once-daily job (cache TTL maxes at 1h), a one-shot
+call, or a prompt under the model's minimum prefix. Never "fix" one without checking
+`usage.cache_read_input_tokens` first. Minimums are **not monotonic** across generations:
+512 (Opus 5), 1024 (Sonnet 5 / Sonnet 4.6 / Opus 4.8), 2048 (Opus 4.7), 4096 (Haiku 4.5,
+Opus 4.6). Dropping below is a silent no-op, never an error.
+
+**Caching is not the only lever, and often not the biggest.** It prices input only — on
+the workload audited 2026-08-22, output was 53% of spend. Check model choice and the Batch
+API (50%, and it halves output too) before reaching for `cache_control`.
 
 **Evaluated and deliberately SKIPPED — do not re-attempt unless the prompt shape
 changes:** `helm/app/llm/vision.py`, `plainspoke*/llm.py` + `research/*`,
