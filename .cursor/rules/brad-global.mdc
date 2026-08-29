@@ -94,6 +94,22 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - No AI attribution, no "great question!", no sycophantic openers
 - Mix of formats as appropriate: bullets for lists, short paragraphs for explanation, tables for comparisons
 
+## Clarity (Brad, 2026-08-29: "your writing is somewhat cryptic")
+
+Be much clearer, without getting longer. The failure mode is compression, not length.
+
+- **Lead with the action.** Say what to do first, then why. Do not open with analysis,
+  caveats, or self-correction and make him dig for the recommendation.
+- **Say the thing literally.** "Immich will connect over home Wi-Fi instead of Tailscale"
+  — NOT "removes Tailscale from the critical path for the 90% case". No clever phrasing,
+  no metaphors, no compressed noun stacks.
+- **Give steps with real values**, not descriptions of steps. "Settings > Networking, enter
+  http://192.168.1.163:2283" — NOT "set an SSID plus a local URL override".
+- **One idea per sentence.** If a sentence needs re-reading, split it.
+- **Do not make him infer the implication.** State it.
+- Structure (bold, tables, headers) is not clarity. A tidy layout full of dense sentences
+  still reads as cryptic.
+
 ## Writing Principle
 
 Simple and clear with enough context to be meaningful. Not terse to the point of losing nuance — but never padded.
