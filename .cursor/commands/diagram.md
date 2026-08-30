@@ -7,6 +7,19 @@ When asked for a diagram, drawing, architecture diagram, flowchart, system map, 
 
 **Standard: modern, dark-mode, exported to PDF (+ PNG for inline preview). NEVER use mermaid — Brad considers it ugly/not modern.**
 
+**Enforced by:** `~/.claude/hooks/guard_file_write_rules.py`
+
+That line is not decoration. This rule enforced nothing until 2026-08-30, and
+in the gap the ops-dashboard shipped a mermaid architecture graph plus a
+mermaid CDN script on every page load. The hook now blocks a Write/Edit that
+introduces a mermaid fence, the CDN script, `mermaid.initialize`/`run`, or a
+`<pre class="mermaid">` target. Writing *about* mermaid in a comment is
+deliberately still allowed. Tests: `~/.claude/hooks/test_guard_file_write_rules.py`.
+
+For a web page, render the D2 to SVG at build time and embed it rather than
+shipping a diagram library to the browser — see
+[`ops-dashboard/scripts/render_diagrams.sh`](../../Projects/ops-dashboard/scripts/render_diagrams.sh).
+
 ## Tool choice
 - **Default → D2** (`d2`): text → polished dark diagram, native PDF+PNG.
 - **Icon-rich cloud/infra → mingrammer `diagrams`** (Python; interpreter `~/.diagram-tools/venv/bin/python`, needs Graphviz `dot`).
