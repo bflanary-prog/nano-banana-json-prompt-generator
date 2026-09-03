@@ -73,6 +73,17 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+## 5. Git — "commit" is not push; never scoop other sessions
+
+Applies on air, mini, and remote/Cursor sessions. Full write-up:
+`~/.claude/projects/_shared/memory/feedback_commit_vs_push.md`.
+
+- **"commit"** → stage **this session's** paths only → commit → **STOP. Do not push.**
+- Push only on **"wrap up"** / **"git sync"** / explicit **"push"**.
+- If `git status` shows files you did not touch, **leave them** (`~/Projects/*`
+  and `~/.claude`). Never `git add -A` / `git commit -a` over mixed dirty trees.
+- Always: `git add <paths…>` then `git commit -m "…" -- <paths…>`.
+
 ---
 
 **Tradeoff:** These rules bias toward caution over speed. For trivial tasks, use judgment.
@@ -148,16 +159,73 @@ Registry: [`~/.claude/keychain-index.json`](../keychain-index.json) — a
 pointer-only catalog, no values. **Update it on every Keychain write**, or future
 sessions won't know the key exists.
 
-## 1. Never echo a secret value
+## 1. Never send ANY portion of a secret value to output
+
+**The rule, in one sentence:** never send any portion of a secret's value to
+output; prove presence with `| wc -c` or an exit status, prove equality with
+`| shasum -a 256 | cut -c1-8`, and let nothing else consume a secret read's
+stdout.
+
+**Enforced by:** `~/.claude/hooks/guard_secret_exposure.py`
 
 Not in chat, not in CLI arguments (visible in `ps`, shell history, and tool
 logs), not in commit messages or diffs, not in screenshots, not in plan files.
+A transcript is durable — it is written to disk, sent to the API, and ingested
+into brad-kb, where it becomes *semantically searchable*. Treat printing a
+secret as publishing it.
 
-To prove a slot is populated, show a short prefix only:
+### The approved probes
 
-```bash
-security find-generic-password -s "<service>" -a "<account>" -w | head -c 12
-```
+| Question | Command |
+|---|---|
+| Is the slot populated? | `security find-generic-password -s SVC -a ACC -w >/dev/null 2>&1; echo $?` |
+| Is it populated, and how long? | `security find-generic-password -s SVC -a ACC -w \| wc -c` |
+| **Is it the SAME key on both machines?** | `security find-generic-password -s SVC -a ACC -w \| shasum -a 256 \| cut -c1-8` |
+| Does it match the vendor console row? | `security find-generic-password -s SVC -a ACC -w \| tail -c 5` (last 4 — **the only case where characters are justified**) |
+
+### Why the old "12-char prefix" rule was wrong, not merely too generous
+
+It was a rule about **quantity**, and quantity is the wrong axis:
+
+- **It needs per-format entropy judgment at authoring time.** 12 characters of
+  an Anthropic key is the constant boilerplate `sk-ant-api03-`; 12 characters of
+  a 20-character GitHub PAT is most of the secret. The budget has to be
+  re-derived for every credential shape, and "60 is basically a long prefix" is
+  exactly the drift that follows.
+- **No mechanism can check it.** A hook inspects command strings; it cannot
+  compute how much entropy escaped. It *can* verify that the only consumer of a
+  secret read is `wc` or `shasum`. Under the house doctrine that every control
+  names its enforcing mechanism, a rule the mechanism cannot check is decayed on
+  arrival.
+- **A prefix proves the wrong thing.** `sk-ant-api03-` is identical across every
+  Anthropic key, so a prefix cannot tell you *which* key is in the slot — the
+  actual question — while still leaking real bytes. A hash answers it and leaks
+  none.
+- Where characters are unavoidable, the industry norm is **last-4, never
+  first-N** (Stripe, GitHub, OpenAI and AWS all display last-4; PCI DSS permits
+  first-6 only because a card BIN is routing metadata, not secret material).
+
+### What the guard cannot catch — do not treat it as coverage
+
+- **It reads command strings, not output.** `cat notes.txt` where a key was
+  pasted, `curl -v` echoing an Authorization header, `git show` of a commit
+  containing a credential — all pass.
+- **The Read tool bypasses it entirely.** It is a Bash hook; there is no
+  PreToolUse Read guard today. Reading a `.env` through Read is unguarded.
+- **Arbitrary interpreters.** A script written to a file and then executed
+  escapes both this hook and the Write/Edit guard.
+- **argv leakage is out of scope and accepted.** `curl -H "x-api-key: $(…)"` is
+  allowed by design; the value is visible in `ps` on the local machine.
+- **It prevents; it does not detect.** Nothing scans existing transcripts. See
+  the incident record in `feedback_never_echo_secrets.md`.
+
+### Origin
+
+2026-08-30. A session proving mini's Keychain slot was populated ran
+`… security find-generic-password -s brad-kb -a anthropic_api_key -w | head -c 60`
+and printed 60 of a 108-character Anthropic key into the transcript. The written
+rule said 12. Nothing checked it. The fragment was local-only, in an untracked
+`.jsonl`, never committed; it was redacted in place the same day.
 
 ## 2. Write it yourself — don't make Brad retype it
 
