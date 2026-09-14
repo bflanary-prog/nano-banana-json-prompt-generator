@@ -569,3 +569,16 @@ cacheable prefix across stages within a run. Invasive — revisit only if YT inp
 spend becomes a concern.
 
 
+# gmail-python
+
+# Gmail — Python first
+
+Do **not** call Cursor Gmail MCP (`plugin-gmail-gmail`) by default. Those tools appear whenever the plugin is enabled; that is availability, not preference.
+
+**Default:** `~/Projects/brad-auto` + `.venv/bin/python` + `gmail_auth.py` (`gmail_token.json`: labels + modify + settings.basic). `ops_sync.py` stays readonly — never add `gmail.send` to it.
+
+**Do not** reconnect the Gmail plugin to fix `list_filters` 403s. Google's MCP client does not consent `gmail.settings.basic`; local Python already can list/create filters.
+
+**MCP exception:** only if Brad asks for the plugin, or a case appears where MCP is clearly better (recommend it, wait for a yes). Do not silently fall back to MCP after a Python error — diagnose the token/script first.
+
+
