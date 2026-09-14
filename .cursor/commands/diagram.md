@@ -11,10 +11,26 @@ When asked for a diagram, drawing, architecture diagram, flowchart, system map, 
 
 That line is not decoration. This rule enforced nothing until 2026-08-30, and
 in the gap the ops-dashboard shipped a mermaid architecture graph plus a
-mermaid CDN script on every page load. The hook now blocks a Write/Edit that
-introduces a mermaid fence, the CDN script, `mermaid.initialize`/`run`, or a
+mermaid CDN script on every page load. The hook blocks a write that introduces
+a mermaid fence, the CDN script, `mermaid.initialize`/`run`, or a
 `<pre class="mermaid">` target. Writing *about* mermaid in a comment is
 deliberately still allowed. Tests: `~/.claude/hooks/test_guard_file_write_rules.py`.
+
+**It covers Bash as well as Write/Edit, since 2026-09-13 — and it did not
+before.** The hook was registered `Write|Edit`, while auto mode and bypass mode
+both instruct: *"make file changes with sed, heredocs, or short scripts, rather
+than using the dedicated Read, Edit, or Write tools."* In either of those modes
+the sentence above was **false** — a heredoc carrying a mermaid fence wrote
+cleanly with the guard silent, verified that day. Naming a mechanism that
+cannot fire scores worse than naming none, because it reads as covered. If you
+add a rule whose mechanism is a `Write|Edit` hook, check its matcher covers
+`Bash`, or the rule is decorative in the mode you are most likely running in.
+
+Widening it surfaced a second bug: the guard had never been able to edit **this
+file**, because the paragraph above quotes the render target it bans. A
+backticked span in a markdown file now counts as prose. Only markdown — a
+JavaScript template literal uses the same character, and there the target is
+real.
 
 For a web page, render the D2 to SVG at build time and embed it rather than
 shipping a diagram library to the browser — see
