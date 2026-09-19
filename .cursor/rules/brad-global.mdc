@@ -84,6 +84,13 @@ Applies on air, mini, and remote/Cursor sessions. Full write-up:
   and `~/.claude`). Never `git add -A` / `git commit -a` over mixed dirty trees.
 - Always: `git add <paths…>` then `git commit -m "…" -- <paths…>`.
 
+## 6. Layout freeze / 3-strike (UI)
+
+Escalation after documented advice failed (`feedback_ui_layout_interpretation`, then HA remotes 2026-09-13 / session `1dc35aef`).
+
+- After Brad confirms a layout (**perfect** / **keep exactly as it is** / **size only**), **refuse structural redesigns** — no column-count, grid topology, spacer, or icon↔text flips. Size-only that needs structure → **stop and ask**. See `feedback_approved_layout_frozen.md`.
+- After **three** failed UI layout attempts on the same surface in one session, **stop shipping** and ask — do not take a fourth redesign pass.
+
 ---
 
 **Tradeoff:** These rules bias toward caution over speed. For trivial tasks, use judgment.
