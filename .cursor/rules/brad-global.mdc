@@ -147,8 +147,8 @@ Simple and clear with enough context to be meaningful. Not terse to the point of
 - No wall-of-text responses — break up dense content
 - When referencing code or file paths, use markdown links where clickable in VS Code
 - **Open items / review asks MUST surface the artifact (standing rule, all projects, both machines — Brad, 2026-07-21).** Any item Brad is asked to review, validate, decide, or act on must put the exact artifact in front of him:
-  - **Local files: markdown link with a path RELATIVE to the workspace root** — `[label](relative/path/from/workspace/root)`, e.g. `[video_ids.json](plainspoke/out/video_ids.json)`. This is the global standard link format; it opens in the center panel. (Verified working 2026-07-21 after Brad's editor update; links had regressed earlier that day — if they ever die again, fall back to opening via `code <path>` and flag the regression.)
-  - **Visual yay/nay decisions (thumbnails, mockups, design picks): additionally OPEN the image(s) via `code <path>`** at the moment of asking so the asset is on screen — per the decision-with-asset rule.
+  - **Local files: markdown link with a path RELATIVE to the workspace root** — `[label](relative/path/from/workspace/root)`, e.g. `[video_ids.json](plainspoke/out/video_ids.json)`. This is the global standard link format; it opens in the center panel. (Verified working 2026-07-21 after Brad's editor update; links had regressed earlier that day — if they ever die again, fall back to opening via `cursor -r <absolute path>` and flag the regression.)
+  - **Visual yay/nay decisions (thumbnails, mockups, design picks): additionally OPEN the image(s) via `cursor -r <absolute path>`** at the moment of asking so the asset is on screen — per the decision-with-asset rule. Brad works in Cursor; `code` opens VS Code and is blocked by `~/.claude/hooks/guard_editor_cli.py`.
   - **Browser resources (YouTube Studio, dashboards, external sites): URL links.**
   - Never hand Brad an action item he has to go hunt for.
 
